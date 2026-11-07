@@ -54,7 +54,8 @@ ask permission before every explanation or repeat the scan through another helpe
 - On Windows, use `removal_plan` from the full scan when available. Show its exact
   files, effects, total bytes, digest, expiry, and **PERMANENT DELETION — cannot be
   undone; bypasses Recycle Bin**. Use a multi-select question if the host supports
-  it, with no destructive option preselected. Otherwise offer deleting the exact
+  it, with no destructive option preselected. If a host preselects the first option,
+  put review or cancel first. Otherwise offer deleting the exact
   listed batch, reviewing a different selection, or cancelling. A submitted clear
   irreversible choice is the final approval: call `clean remove` immediately with
   ONLY the checked IDs, the digest shown BEFORE approval, and `--confirm-permanent`,

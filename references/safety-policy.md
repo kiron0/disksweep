@@ -10,9 +10,9 @@ are three separate gates. No confidence score overrides any gate.
   current local user profile without a separate metadata-scan question. Explicit
   roots and restrictions take priority; other drives/profiles require separate scope.
 - Do not traverse symlinks, junctions, reparse points, or nested mounts. POSIX scans pin
-  directory handles. Windows metadata traversal is best effort; content hashing and moves
-  use a separate approved NTFS-handle protocol there; POSIX hashing/moves remain
-  disabled on Windows. Same-device bind mounts are separately checked on Linux.
+  directory handles. Windows metadata traversal is best effort. Selected-file deletion uses the
+  separate approved NTFS-handle protocol; POSIX content hashing and quarantine
+  remain disabled on Windows. Same-device bind mounts are separately checked on Linux.
 - Prune credentials, repositories' VCS metadata, dependencies, virtual environments,
   backup folders, and recognized cloud directory names. Custom cloud roots, unusual
   backup names, and network mounts require user-supplied exclusions; autodetection is incomplete.
