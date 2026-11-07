@@ -2,6 +2,10 @@
   <img src="assets/readme-cover.svg" alt="Swipr: less guesswork, more clarity. Audit your storage and review every change." width="1200" />
 </p>
 
+<p align="center">
+  <a href="https://skills.sh/kiron0/swipr/swipr">View Swipr on skills.sh</a>
+</p>
+
 # Swipr
 
 **Understand your disk. Review what can go.**

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Use Hopilo's Unbounded/Onest type pairing in the README cover, add Swipr's
+  skills.sh link below it, and clarify skill capabilities and response guidance.
 - Refresh the README with a local SVG cover, task-based commands, a platform
   matrix, and expandable terminal instructions; organize the evaluation guide.
 - Add guided `start` workflows without implicit scans or permissions.
