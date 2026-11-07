@@ -7,7 +7,7 @@ import time
 
 import _core as core
 
-MODES = {"quick", "deep", "safe-cleanup", "developer", "emergency", "targeted",
+MODES = {"full", "quick", "deep", "safe-cleanup", "developer", "emergency", "targeted",
          "duplicates", "health", "compare", "custom"}
 POLICY_KEYS = {"roots", "exclude", "max_entries", "max_depth", "max_seconds",
                "max_hash_bytes", "preserve_offline", "never_permanently_delete"}
@@ -39,6 +39,10 @@ def operation_report(request):
     core.require(result["plan_id"] == plan["id"], "Report plan and operation do not match")
     entries = plan.get("entries", plan.get("items", []))
     approved = {e.get("id", e.get("candidate_id")) for e in entries}
+    if result.get('action') == 'permanent-remove':
+        selected = set(result['selected_ids'])
+        core.require(selected and selected <= approved and result['plan_digest'] == plan['digest'], 'Removal report does not match the selected reviewed plan')
+        approved = selected
     core.require(all(isinstance(x, str) and core.re.fullmatch(r"[a-f0-9]{24}", x) for x in approved), "Invalid report candidate identifiers")
     core.require(isinstance(result["id"], str) and core.re.fullmatch(r"[a-f0-9]{32}", result["id"]), "Invalid report operation identifier")
     attempted = {x["candidate_id"] for x in result["items"]}

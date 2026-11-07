@@ -15,7 +15,7 @@ import _purge as purge
 
 
 class AuditFeatures(Fixture):
-    def test_all_ten_modes_have_operational_read_only_workflows(self):
+    def test_all_modes_have_operational_read_only_workflows(self):
         for mode in sorted(audit.MODES - {"compare"}):
             with self.subTest(mode=mode):
                 result = audit.audit({"mode": mode, "roots": [str(self.root)], "content_read_approved": True})

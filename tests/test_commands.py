@@ -57,17 +57,17 @@ class Commands(Fixture):
         if os.name == "posix":
             self.assertEqual(output.stat().st_mode & 0o777, 0o600)
 
-    def test_start_never_inspects_folders_or_assumes_scope(self):
+    def test_guide_never_inspects_folders_or_assumes_scope(self):
         before = set(self.base.rglob("*"))
         missing = self.base / "does-not-exist"
-        result = self.data("start", "--goal", "developer", "--root", missing)
+        result = self.data("start", "--guide", "--goal", "developer", "--root", missing)
         self.assertFalse(result["scope_required"])
         self.assertIn(str(missing), result["suggested_arguments"])
         self.assertFalse(result["execution_authorized"])
-        self.assertTrue(self.data("start")["scope_required"])
-        duplicates = self.data("start", "--goal", "duplicates")
+        self.assertTrue(self.data("start", "--guide")["scope_required"])
+        duplicates = self.data("start", "--guide", "--goal", "duplicates")
         self.assertNotIn("--allow-content-read", duplicates["suggested_arguments"])
-        self.call("start", "--root", "", success=False)
+        self.call("start", "--guide", "--root", "", success=False)
         self.assertEqual(before, set(self.base.rglob("*")))
 
     def test_explain_uses_saved_evidence_without_touching_changed_files(self):

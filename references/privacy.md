@@ -11,6 +11,11 @@ provider's retention or privacy policies. Minimize scope and what metadata enter
 context; prefer summaries and opaque IDs for external discussion. Machine inventories,
 plan entries, journals, and Docker context metadata can expose private paths and names.
 
+A requested audit includes disposable private session results needed to reuse the
+inventory and prepare review. Use unique temporary paths and minimize retention;
+do not ask a save question at every stage. Durable reports, saved history/profiles,
+external sharing and uploads require their applicable separate consent.
+
 Private state uses 0700 directories, 0600 files, HMAC signatures, and no-overwrite writes
 on POSIX. Windows metadata audit is supported; secure signed state/execution is disabled
 until native ACL/handle protections exist. Store only a short approval note, never a full

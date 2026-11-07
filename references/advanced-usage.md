@@ -1,5 +1,9 @@
 # Modes and protection profiles
 
+- **Full user scan (default):** `start` / `scan full` discovers capabilities, inventories
+  the current local profile and combines storage findings before one review prompt.
+  Limits are 100000 entries, 32 levels and 60 seconds; report partial coverage.
+  Same-size groups are possible duplicates only; no content hashing or cleanup is implied.
 - **Quick scan:** narrow known user-cache roots with default bounded metadata inspection.
 - **Deep scan:** expand only explicitly requested roots and limits in stages. Explain
   unvisited directories; do not silently cross mounts or hash a whole disk.

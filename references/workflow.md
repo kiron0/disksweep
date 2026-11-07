@@ -10,7 +10,8 @@
 4. **Recommend:** present sizes, risks, side effects, recovery, and mechanism. Review
    offline needs, active debugging, cloud scope, and upcoming builds.
 5. **Plan:** select exact eligible IDs; revalidate and persist a signed plan outside scan
-   roots on the same filesystem. Saving private state and reports requires user consent.
+   roots on the same filesystem. Temporary private review artifacts are part of the
+   requested workflow; durable reports/history require consent.
 6. **Approve:** display the plan members, digest, expiration, and zero immediate free-space
    warning. Obtain fresh user approval and confirmation that Python work has stopped.
 7. **Execute:** validate the plan and receipt again; consume the receipt atomically before
@@ -29,3 +30,10 @@ plan is not an extension of the old permission.
 No helper automatically executes native maintenance. For a platform/browser/package
 operation, present the supported native UI or a reviewed dry-run and let the user
 choose its separate scope. Do not reuse a bytecode approval for native maintenance.
+
+Default interaction combines phases 1–4 without individual questions. Use one host
+choice prompt for the exact reviewed action, combine workload confirmation with
+quarantine approval when clearly labeled, and continue through verification after
+approval. Never require magic reply strings. Separate irreversible purge and changed
+plans still need a fresh prompt. On Windows, choosing native cleanup opens Storage
+Settings; the user confirms exact removal categories there.

@@ -32,7 +32,13 @@ and an AI agent with local filesystem access.
 $swipr start
 ```
 
-Swipr helps you choose a workflow and the folders to inspect.
+Swipr scans your current local user profile, finds storage opportunities, then
+shows one review prompt. Explicit folders or policies override that default.
+The full scan includes discovery and analysis; it never approves removal.
+
+On Windows, choose **Review Windows cleanup** to open Storage Settings and review
+removal categories there. Agents with a question UI show selectable choices;
+other hosts ask one concise question. No special reply phrase is required.
 
 | Agent | Invocation |
 | :--- | :--- |
@@ -50,16 +56,22 @@ These examples use Codex. Replace the folders with your own authorized locations
 | Files over 100 MiB | `$swipr find large --root ~/Downloads --min-bytes 104857600` |
 | Developer storage | `$swipr scan developer --root ~/Projects/my-app` |
 | Storage health | `$swipr scan health --root ~/Projects/my-app` |
-| Exact duplicates | `$swipr start --goal duplicates` |
+| Possible duplicates | `$swipr start --goal duplicates` |
 | Commands and options | `$swipr help` |
 
-Duplicate hashing requires separate approval to read file contents.
+The default scan groups same-size files without reading contents. Exact duplicate
+hashing requires separate approval and a supported POSIX platform.
 
 ## Review before changing anything
 
-1. **Audit** your chosen folders within explicit time, depth, and entry limits.
+1. **Audit** your user profile or selected folders within time, depth, and entry limits.
 2. **Understand** findings, recorded evidence, side effects, and recovery options.
-3. **Review** an exact plan. Supported changes require fresh approval and verification.
+3. **Choose** the next action in one review prompt. Supported changes require an
+   exact plan and fresh approval; Windows removal is confirmed in native controls.
+
+The full pass has limits of 100,000 entries, 32 levels, and 60 seconds. Coverage
+can be partial. Additional drives, other profiles and protected areas are excluded
+unless separately scoped. Use `$swipr start --guide` for help without scanning.
 
 Personal files, source, dependencies, credentials, backups, and system state stay
 protected from automated cleanup. Most application and system maintenance uses

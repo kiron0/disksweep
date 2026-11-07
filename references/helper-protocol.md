@@ -43,8 +43,10 @@ obtain consent and use owner-only files. No report is automatically persisted.
 
 ## Signed plan and approval — POSIX only
 
-Choose `STATE` outside all inventory roots on the same local filesystem, with consent
-to persist metadata. It must be owned by the current user with mode 0700. The helper
+Choose `STATE` outside all inventory roots on the same local filesystem. Temporary
+private plan/journal metadata is part of a requested review, so do not ask repeated
+save questions. Durable history/profile/report persistence requires consent.
+State must be owned by the current user with mode 0700. The helper
 creates a missing final directory privately; files use 0600 and exclusive creation.
 Do not put it in shared/cloud folders. Signed state is disabled on Windows.
 

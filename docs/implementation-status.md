@@ -8,7 +8,7 @@ operations the agent can perform locally.
 | Feature | macOS / Linux | Windows |
 |---|---|---|
 | Bounded metadata audits, sizes, large files, risk classification | Automated | Automated |
-| Ten modes, project-artifact detection, comparisons and health findings | Automated | Automated |
+| Eleven modes, project-artifact detection, comparisons and health findings | Automated | Automated |
 | Installed-app associations and potential leftovers | Authorized native inventory | Authorized native inventory |
 | Trash / Recycle Bin usage | Explicit protected metadata scope | Native current-user bin query |
 | Filesystem, logs, snapshots and volume discovery | Authorized native queries | Authorized native queries |
@@ -17,6 +17,12 @@ operations the agent can perform locally.
 | Bytecode quarantine, restoration, signed approval and journaling | Automated after exact approval | Native user-guided cleanup |
 | Permanent removal of verified private bytecode quarantine | Separate irreversible approval | Native user-guided cleanup |
 | Browser, package, Docker and system maintenance | Native user-guided cleanup | Native user-guided cleanup |
+
+Default `start` performs a bounded current-user scan and analysis in one pass,
+then supplies review choices for the host's question UI. Terminal output lists
+those choices without implementing a separate interactive UI. Windows can open
+the fixed Storage Settings page after the native-cleanup choice; the user reviews
+categories and confirms removal in Windows itself. It cannot delete files directly.
 
 ## What the checks establish
 

@@ -1,4 +1,4 @@
 interface:
   display_name: "Swipr"
   short_description: "Audit storage and plan safe, approved cleanup"
-  default_prompt: "Use $swipr start to choose a workflow, then audit my chosen folders and explain findings before proposing any changes."
+  default_prompt: "Use $swipr start to scan my current user storage and find opportunities in one pass, then show one review prompt with clear choices before any cleanup."

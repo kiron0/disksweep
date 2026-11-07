@@ -12,7 +12,9 @@ $swipr scan quick --root ~/Downloads
 In **Claude Code**, use `/swipr` in place of `$swipr`. In other agents, say
 `Use Swipr: scan quick --root ~/Downloads`. These are agent instructions;
 the invocation prefix depends on your host. An agent must obtain your approval
-before using any consent or confirmation flag.
+before using cleanup or content-reading confirmation flags. A clear choice in a
+review prompt counts as approval of the action described there; no typed magic
+phrase is required. Discovery and metadata analysis run together before that prompt.
 
 For exact terminal commands, run the adapter from a cloned repository:
 
@@ -32,12 +34,12 @@ There is no separate `swipr` executable or npm package to install.
 | Command | Subcommands | Purpose |
 |---|---|---|
 | `help` | Any command path | Show help without scanning |
-| `start` | `--goal quick/developer/emergency/health/large/duplicates` | Suggest a workflow without inspecting files |
+| `start` | `--goal full/quick/developer/emergency/health/large/duplicates`, `--guide` | One-pass scan and review choices; `--guide` only explains |
 | `doctor` | — | Check capabilities, disk space and tools |
-| `scan` | `quick`, `deep`, `developer`, `emergency`, `targeted`, `health`, `safe-cleanup`, `custom` | Scoped read-only audit |
+| `scan` | `full`, `quick`, `deep`, `developer`, `emergency`, `targeted`, `health`, `safe-cleanup`, `custom` | Scoped read-only audit |
 | `find` | `large`, `directories`, `duplicates` | Discover storage consumers |
 | `explain` | `--input AUDIT_JSON --candidate FULL_ID` | Explain saved findings without rescanning |
-| `inspect` | `apps`, `storage`, `docker`, `activity`, `leftovers`, `trash`, `recycle-bin` | Inspect native and protected metadata |
+| `inspect` | `apps`, `storage`, `docker`, `activity`, `leftovers`, `trash`, `recycle-bin`, `cleanup` | Inspect metadata or open Windows cleanup Settings |
 | `plan` | `create`, `purge`, `show`, `validate` | Prepare and review exact plans |
 | `approve` | `quarantine`, `purge` | Record fresh, explicit approval |
 | `clean` | `quarantine`, `restore`, `purge` | Run supported approved actions |
@@ -51,19 +53,42 @@ The terminal examples below omit no installation step: run them from the reposit
 or replace `scripts/swipr.py` with your installed helper path. Replace uppercase IDs
 and `/path/...` placeholders with actual results and authorized locations.
 
-## Guided first use
+## Default scan and review
 
 ```sh
 python scripts/swipr.py start
-python scripts/swipr.py start --goal developer --root "/path/to/project"
-python scripts/swipr.py start --goal duplicates --json
+python scripts/swipr.py start --root "/path/to/project" --output audit.json
+python scripts/swipr.py scan full --output audit.json
+python scripts/swipr.py start --guide --goal duplicates
 ```
 
-`start` suggests argument arrays and the next review steps. It does not scan,
-probe paths, create state, or grant permission. Without `--root`, replace `PATH`
-with a folder you authorize. Repeat `--root` for several folders. Run `doctor`
-to check capabilities. Duplicate suggestions omit `--allow-content-read` until
-you explicitly approve content hashing.
+`start` and `scan full` combine capability discovery, a metadata inventory, file
+and directory ranking, cache findings, health and possible duplicate size groups.
+They default to the current local user profile, with 100000 entries, depth 32 and
+60 seconds as limits. This is a full pass of the selected scope, not every drive
+or a guarantee of complete coverage. Links, protected trees and nested mounts
+are skipped. Network or redirected default profiles require explicit local scope.
+
+Use `--root` or a restrictive policy/profile to override the default. The same
+scan controls below apply. `--goal` records the user's focus; all non-guide goals
+reuse the full overview, and `duplicates` never silently hashes content.
+`--guide` only suggests arguments and steps, without scanning or writing state.
+
+Full results include `review_prompt` with three navigation choices for a host
+question UI. Selecting navigation never authorizes deletion. The agent prepares
+any supported exact plan before its actual approval prompt, then executes and
+verifies without asking again for every internal step. The terminal adapter
+prints choices; it does not create interactive agent widgets by itself.
+
+Windows offers native cleanup, large-file review, or finishing. After choosing
+native cleanup, the agent can open the fixed Storage Settings page:
+
+```sh
+python scripts/swipr.py inspect cleanup --allow-native
+```
+
+This opens `ms-settings:storagesense`; it removes nothing. Review categories and
+confirm removal in Windows Settings. Swipr does not provide direct Windows deletion.
 
 ## Help and capability discovery
 
@@ -89,7 +114,8 @@ python scripts/swipr.py scan targeted --root "/path/to/cache" --exclude "/path/t
 
 `safe-cleanup` prepares recommendations; it never silently executes them.
 `emergency` never weakens protection. Separate mount roots need separate authorization.
-All scan modes use explicit roots and bounded inspection.
+All engines use bounded inspection and resolved roots. Only `start` and `scan full`
+infer the current user profile; other modes still require roots or a scope policy.
 
 Saved scan results include `guidance`: coverage status, a count and up to five
 IDs of recorded bytecode findings, and `explain` argument arrays when `--output`
@@ -120,11 +146,11 @@ Shared scan/find options:
 
 | Option | Meaning |
 |---|---|
-| `--root PATH` | Required unless an explicitly selected policy/profile supplies roots; repeat for separate roots |
+| `--root PATH` | Override the full scan default; other modes require roots or a scope policy; repeat for separate roots |
 | `--exclude PATH` | Repeat to exclude folders |
-| `--max-entries N` | Default 20000; range 1–100000 |
-| `--max-depth N` | Default 12; range 0–64 |
-| `--max-seconds N` | Default 10; range 0.01–120 |
+| `--max-entries N` | Full default 100000; other scans 20000; range 1–100000 |
+| `--max-depth N` | Full default 32; other scans 12; range 0–64 |
+| `--max-seconds N` | Full default 60; other scans 10; range 0.01–120 |
 | `--top N` | Default 20; range 1–100 |
 | `--sort ORDER` | `size`, `oldest`, `location`, `type`, `application`, `recoverability` |
 | `--policy FILE` | Restrictive policy JSON |
@@ -272,6 +298,13 @@ python scripts/swipr.py catalog list --category package-cache --json
 ```
 
 ## Results and errors
+
+Terminal JSON input is bounded at 256 MiB to support full inventories. Internal
+single-request JSON helpers retain their 32 MiB limit. Full overviews retain the
+complete bounded inventory but limit proposal rows to 100; `proposal_truncated`
+and `proposal_candidate_count` disclose that limit. Possible duplicate groups are
+limited to 100 groups and 100 displayed IDs per group; `file_count` gives each
+group's recorded total. No content match or physical savings is implied.
 
 Successful JSON: `{"ok":true,"result":{...}}`. Refused/failed execution returns
 `{"ok":false,"error":{"code":"...","message":"..."}}` with exit code 2.

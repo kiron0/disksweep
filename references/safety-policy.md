@@ -5,7 +5,10 @@ are three separate gates. No confidence score overrides any gate.
 
 ## Scope and traversal
 
-- Require explicit scan roots; reject duplicates, overlaps, protected roots, and linked roots.
+- Require resolved engine roots; reject duplicates, overlaps, protected roots, and
+  linked roots. The default `start`/`scan full` workflow resolves and announces the
+  current local user profile without a separate metadata-scan question. Explicit
+  roots and restrictions take priority; other drives/profiles require separate scope.
 - Do not traverse symlinks, junctions, reparse points, or nested mounts. POSIX scans pin
   directory handles. Windows metadata traversal is best effort; content hashing and moves
   are disabled there. Same-device bind mounts are separately checked on Linux.

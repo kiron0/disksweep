@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.3 — 2026-11-07
+
+- Make `start` and the new `scan full` combine discovery, current-user metadata
+  scanning, file/directory rankings, cache findings, health and possible duplicate
+  size groups before one review prompt. Explicit scopes and policies take priority.
+- Use structured host choices instead of magic reply phrases and per-step questions;
+  retain exact-plan approval, workload confirmation and separate irreversible approval.
+- Add `start --guide` for onboarding without a scan and a fixed Windows Storage
+  Settings opener after the native-cleanup choice. Windows deletion stays native.
+- Increase the bounded terminal JSON reader to 256 MiB for full inventories;
+  disclose scan coverage, proposal truncation and unverified duplicate groups.
+
 ## 0.1.2 — 2026-11-07
 
 - Add guided `start` workflows without implicit scans or permissions.

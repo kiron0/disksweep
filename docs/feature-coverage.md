@@ -45,9 +45,12 @@ references, focused helpers, versioned rules, schemas, assets, and executable te
 
 ## Advanced behavior
 
-All ten modes are routed by audit.py: quick, deep, safe-cleanup, developer,
+All eleven modes are routed by audit.py: full, quick, deep, safe-cleanup, developer,
 emergency, targeted, duplicates, health, compare, and custom. Every scan needs
-explicit roots; modes grant no action permission. Resource limits and partial coverage
+resolved roots; modes grant no action permission. `start` / `scan full` infer the
+current local user profile unless roots or a scope policy are selected. They combine
+discovery and analysis before one review prompt. Other modes require explicit scope.
+Resource limits and partial coverage
 are reported. Additional depth needs reviewed scope and limits.
 
 Profiles only restrict scope and budgets. profiles.py and snapshots.py persist signed

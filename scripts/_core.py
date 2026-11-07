@@ -27,7 +27,7 @@ import subprocess
 import time
 from collections import defaultdict
 
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 BASE = Path(__file__).resolve().parent.parent
 KINDS = {"SAFE-CANDIDATE", "REVIEW", "PROTECTED", "UNSUPPORTED"}
 PRUNE = {".git", ".svn", ".hg", ".ssh", ".aws", ".gnupg", ".azure",
@@ -217,8 +217,9 @@ def probe(request):
             "capabilities": {"metadata": True,
                              "content_hashing": os.name == "posix" and os.open in os.supports_dir_fd,
                              "quarantine": os.name == "posix" and os.open in os.supports_dir_fd,
-                             "permanent_delete": os.name == "posix" and os.open in os.supports_dir_fd,
-                             "permanent_delete_scope": "separately approved private bytecode quarantine only",
+                             "direct_remove": os.name == 'nt',
+                             "permanent_delete": os.name == 'nt' or (os.name == "posix" and os.open in os.supports_dir_fd),
+                             "permanent_delete_scope": 'exact approved current-user local NTFS files' if os.name == 'nt' else "separately approved private bytecode quarantine only",
                              "active_use_detection": bool(shutil.which("lsof")) if os.name == "posix" else False,
                              "native_maintenance": "agent-guided; no automatic execution"},
             "notes": ["Suggested roots are proposals; scan only user-authorized scope.",
@@ -688,7 +689,7 @@ def human_report(request):
         value = html.escape(entry["path"].replace("\n", "\\n").replace("\r", "\\r"))
         return re.sub(r"([\\`*_{}\[\]()#+.!|>-])", r"\\\1", value)
     lines = ["# Swipr Storage Audit", "", "Status: read-only; no cleanup performed.",
-             "Scope: " + str(len(inventory["roots"])) + " explicitly selected roots.",
+             "Scope: " + str(len(inventory["roots"])) + " resolved roots.",
              "Coverage: " + ("complete within configured depth" if inventory["complete"] else "partial — inspect issues and limits"),
              "Skipped or limited locations: " + str(len(inventory["issues"])),
              "", "| Classification | Files | Logical bytes | Known allocated bytes |",
@@ -699,6 +700,7 @@ def human_report(request):
               "Quarantine's estimated immediate free-space increase is **0 bytes**.", "", "| Item | Logical bytes | Classification | Mechanism |", "|---|---:|---|---|"]
     for entry in sorted(inventory["entries"], key=lambda x: x["logical_bytes"], reverse=True)[:30]:
         lines.append(f"| {location(entry)} | {entry['logical_bytes']} | {entry['classification']} | {entry['strategy']} |")
-    lines += ["", "Next: review exact candidates, side effects and recovery. Approval applies only to a fixed, unexpired plan.",
-              "Native browser, package, Docker, OS, and Trash cleanup is guided review only. Unknown data remains protected."]
+    if request.get('include_next', True):
+        lines += ["", "Next: review exact candidates, side effects and recovery. Approval applies only to a fixed, unexpired plan.",
+                  "Native browser, package, Docker, OS, and Trash cleanup is guided review only. Unknown data remains protected."]
     return {"markdown": "\n".join(lines) + "\n", "shareable": shareable}

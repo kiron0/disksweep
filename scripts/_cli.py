@@ -13,6 +13,8 @@ import _core as core
 import _native as native
 import _purge as purge
 import _guide as guide
+import _overview as overview
+import _remove as removal
 
 
 def load(path):
@@ -22,8 +24,8 @@ def load(path):
     fd = os.open(file, flags)
     with os.fdopen(fd, "rb") as stream:
         core.require(stat.S_ISREG(os.fstat(stream.fileno()).st_mode), "Input must be a regular JSON file")
-        raw = stream.read(32 * 1024**2 + 1)
-    core.require(len(raw) <= 32 * 1024**2, "Input exceeds 32 MiB")
+        raw = stream.read(256 * 1024**2 + 1)
+    core.require(len(raw) <= 256 * 1024**2, "Input exceeds 256 MiB")
     data = json.loads(raw)
     if isinstance(data, dict) and "ok" in data:
         core.require(data["ok"] is True, "Input contains a failed operation")
@@ -89,9 +91,11 @@ def parser():
     p = commands.add_parser("help", help="Show command help without scanning")
     p.add_argument("topic", nargs="*")
     p.set_defaults(route="help")
-    p = leaf(commands, "start", "start", "Choose a workflow without scanning or changing files")
-    p.add_argument("--goal", choices=tuple(guide.GOALS), default="quick")
-    p.add_argument("--root", action="append", metavar="PATH", help="Suggest commands for these folders; do not inspect them")
+    p = leaf(commands, "start", "start", "Scan and analyze the current user profile, then present review choices")
+    p.add_argument("--goal", choices=tuple(guide.GOALS), default="full")
+    p.add_argument("--guide", action="store_true", help="Only suggest a workflow; do not scan")
+    add_scope(p)
+    p.set_defaults(max_entries=100000, max_depth=32, max_seconds=60)
     p = leaf(commands, "explain", "explain", "Explain exact findings from a saved audit without rescanning")
     p.add_argument("--input", required=True, metavar="AUDIT_JSON")
     p.add_argument("--candidate", required=True, action="append", metavar="FULL_ID")
@@ -100,9 +104,11 @@ def parser():
     p.add_argument("--path", default=str(Path.home()))
 
     scans = group("scan", "Run a read-only scoped audit")
-    for mode in ("quick", "deep", "developer", "emergency", "targeted", "health", "safe-cleanup", "custom"):
+    for mode in ("full", "quick", "deep", "developer", "emergency", "targeted", "health", "safe-cleanup", "custom"):
         p = leaf(scans, mode, "scan", mode + " audit; no file changes")
         p.set_defaults(mode=mode); add_scope(p)
+        if mode == "full":
+            p.set_defaults(max_entries=100000, max_depth=32, max_seconds=60)
 
     finds = group("find", "Find files, directories, or exact duplicates without removal")
     for name in ("large", "directories", "duplicates"):
@@ -134,6 +140,11 @@ def parser():
             p.add_argument("--confirm-scope", action="store_true")
 
     plans = group("plan", "Create, review, or revalidate exact plans without executing them")
+    p = leaf(plans, 'remove', 'plan', 'Prepare exact permanent Windows removal for a review prompt')
+    p.add_argument('--input', required=True, metavar='AUDIT_JSON')
+    p.add_argument('--candidate', action='append', required=True, metavar='FULL_ID')
+    p.add_argument('--include-personal', action='store_true', help='Only for personal files explicitly selected by the user; never inferred from size or age')
+    p.add_argument('--policy', metavar='FILE')
     p = leaf(plans, "create", "plan", "Create a signed exact bytecode quarantine plan")
     add_state(p); p.add_argument("--input", required=True, metavar="AUDIT_JSON")
     p.add_argument("--candidate", action="append", required=True, metavar="ID")
@@ -153,15 +164,21 @@ def parser():
         p.add_argument("--workload-stopped" if name == "quarantine" else "--acknowledge-irreversible", action="store_true", required=True)
 
     cleans = group("clean", "Execute only an existing exact approval, or restore without overwriting")
-    for name in ("quarantine", "purge", "restore"):
+    for name in ("quarantine", "purge", "restore", "remove"):
         p = leaf(cleans, name, "clean", name.capitalize() + " exact approved bytecode artifacts")
-        if name == "restore":
+        if name == 'remove':
+            add_state(p)
+            p.add_argument('--input', required=True, metavar='PLAN_OR_FULL_AUDIT_JSON')
+            p.add_argument('--digest', required=True, help='Exact digest shown before the fresh permanent-deletion approval')
+            p.add_argument('--candidate', action='append', required=True, metavar='FULL_ID')
+            p.add_argument('--confirm-permanent', action='store_true', required=True)
+        elif name == "restore":
             add_operation(p); p.add_argument("--confirm", action="store_true", required=True)
         else:
             add_plan(p); p.add_argument("--approval-id", required=True)
 
     p = leaf(commands, "verify", "verify", "Verify a completed quarantine or purge operation")
-    add_operation(p); p.add_argument("--kind", choices=("quarantine", "purge"), default="quarantine")
+    add_operation(p); p.add_argument("--kind", choices=("quarantine", "purge", "remove"), default="quarantine")
 
     reports = group("report", "Produce an audit or verified cleanup report")
     for name in ("audit", "operation"):
@@ -200,12 +217,12 @@ def parser():
     return root
 
 
-def scoped(args):
+def scoped(args, allow_default=False):
     core.require((args.root is None or all(args.root)) and all(args.exclude), "Scan and exclusion paths cannot be empty")
     core.require(1 <= args.top <= 100, "--top must be between 1 and 100")
     core.require(1 <= args.max_entries <= 100000 and 0 <= args.max_depth <= 64 and .01 <= args.max_seconds <= 120, "Invalid scan budget: entries 1–100000, depth 0–64, seconds 0.01–120")
     core.require(not (args.policy and args.profile_id), "Choose --policy or --profile-id, not both")
-    core.require(args.root or args.policy or args.profile_id, "Specify --root, or an explicit policy/profile containing authorized roots")
+    core.require(allow_default or args.root or args.policy or args.profile_id, "Specify --root, or an explicit policy/profile containing authorized roots")
     request = {"exclude": args.exclude, "max_entries": args.max_entries,
                "max_depth": args.max_depth, "max_seconds": args.max_seconds, "top": args.top, "sort_by": args.sort}
     if args.root:
@@ -221,12 +238,18 @@ def scoped(args):
 def dispatch(args):
     route, action = args.route, getattr(args, "action", None)
     if route == "start":
-        return guide.start(args.goal, args.root)
+        if args.guide:
+            return guide.start(args.goal, args.root)
+        result = overview.run(scoped(args, allow_default=True), args.output)
+        result['requested_goal'] = args.goal
+        return result
     if route == "explain":
         return guide.explain(inventory(args.input), args.candidate, args.private)
     if route == "doctor":
         return core.probe({"path": args.path})
     if route in {"scan", "find"}:
+        if route == 'scan' and args.mode == 'full':
+            return overview.run(scoped(args, allow_default=True), args.output)
         request = scoped(args)
         request["mode"] = args.mode if route == "scan" else "targeted"
         if route == "find" and action == "duplicates":
@@ -260,6 +283,9 @@ def dispatch(args):
             return audit.trash({**scoped(args), "authorized": args.confirm_scope})
         return native.recycle_bin({"authorized": args.confirm_scope, "volumes": args.volume})
     if route == "plan":
+        if action == 'remove':
+            return removal.create_plan({'inventory': inventory(args.input), 'candidate_ids': args.candidate,
+                                        'include_personal': args.include_personal, 'policy': load(args.policy) if args.policy else {}})
         if action == "create":
             return core.create_plan({**state(args), "inventory": inventory(args.input), "candidate_ids": args.candidate})
         if action == "purge":
@@ -277,10 +303,19 @@ def dispatch(args):
             return core.approve({**request, "workload_stopped": args.workload_stopped})
         return purge.approve({**request, "acknowledge_irreversible": args.acknowledge_irreversible})
     if route == "clean":
+        if action == 'remove':
+            data = load(args.input)
+            plan = data.get('removal_plan', data)
+            core.require(isinstance(plan, dict), 'No direct-removal plan is available')
+            return removal.execute({**state(args), 'plan': plan, 'plan_digest': args.digest,
+                                    'candidate_ids': args.candidate, 'user_approved': args.confirm_permanent,
+                                    'acknowledge_irreversible': args.confirm_permanent})
         if action == "restore":
             return core.restore({**state(args), "operation_id": args.operation_id, "user_approved": args.confirm})
         return (purge.execute if action == "purge" else core.execute)({**state(args), "plan_id": args.plan_id, "approval_id": args.approval_id})
     if route == "verify":
+        if args.kind == 'remove':
+            return removal.verify({**state(args), 'operation_id': args.operation_id})
         return (purge.verify if args.kind == "purge" else core.verify)({**state(args), "operation_id": args.operation_id})
     if route == "report":
         return core.human_report({"inventory": inventory(args.input), "shareable": not args.private}) if action == "audit" else core.human_report({"operation": load(args.input), "plan": load(args.plan)})
@@ -338,8 +373,10 @@ def main(argv=None):
         text = result.get("markdown") if isinstance(result, dict) else None
         if args.json:
             display = encoded
-        elif args.route == "start":
+        elif args.route == "start" and args.guide:
             display = guide.render_start(result)
+        elif 'review_prompt' in result:
+            display = overview.render(result, saved=bool(args.output))
         elif args.route == "doctor":
             caps = result["capabilities"]
             display = "\n".join(["Swipr " + core.VERSION, "System: " + result["platform"] + " " + result["os_version"],

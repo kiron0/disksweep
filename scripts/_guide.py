@@ -7,6 +7,7 @@ import _core as core
 
 
 GOALS = {
+    "full": ("scan", "full"),
     "quick": ("scan", "quick"),
     "developer": ("scan", "developer"),
     "emergency": ("scan", "emergency"),
