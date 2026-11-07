@@ -1,0 +1,92 @@
+[
+  {
+    "id": "chromium-resource-cache",
+    "version": 1,
+    "category": "browser-cache",
+    "application": "Chromium family",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".cache/google-chrome/Default/Cache",
+      ".cache/chromium/Default/Cache",
+      ".cache/BraveSoftware/Brave-Browser/Default/Cache",
+      "Google/Chrome/User Data/Default/Cache",
+      "Microsoft/Edge/User Data/Default/Cache",
+      "BraveSoftware/Brave-Browser/User Data/Default/Cache",
+      "Library/Caches/Google/Chrome/Default/Cache",
+      "Library/Caches/Microsoft Edge/Default/Cache"
+    ],
+    "reason": "Exact default-profile resource-cache path; other profiles require browser-native inspection",
+    "side_effects": "Use browser cache-only controls; preserve cookies, passwords, offline state and sessions",
+    "recovery": "Resource downloads regenerate cache; offline access may be affected",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "firefox-resource-cache",
+    "version": 1,
+    "category": "browser-cache",
+    "application": "Firefox",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".cache/mozilla/firefox",
+      "Library/Caches/Firefox/Profiles"
+    ],
+    "reason": "Firefox cache root; enumerate using browser tools before choosing data types",
+    "side_effects": "Cache-only browser UI; never delete a profile or offline site storage",
+    "recovery": "May require network to reload resources",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "safari-resource-cache",
+    "version": 1,
+    "category": "browser-cache",
+    "application": "Safari",
+    "platforms": [
+      "macos"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      "Library/Caches/com.apple.Safari"
+    ],
+    "reason": "Safari cache location; audit only",
+    "side_effects": "Use supported Safari cache controls; do not clear website data or sessions",
+    "recovery": "Network resources may be downloaded again",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  }
+]

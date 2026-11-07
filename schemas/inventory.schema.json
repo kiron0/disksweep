@@ -1,0 +1,362 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kiron0/disksweep/schemas/inventory.schema.json",
+  "title": "DiskSweep inventory",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "version": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "roots": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "exclude": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "complete": {
+      "type": "boolean"
+    },
+    "entries_visited": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{24}$"
+          },
+          "path": {
+            "type": "string"
+          },
+          "root": {
+            "type": "string"
+          },
+          "identity": {
+            "type": "object",
+            "properties": {
+              "device": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "inode": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "mode": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "mtime_ns": {
+                "type": "integer"
+              },
+              "ctime_ns": {
+                "type": "integer"
+              },
+              "links": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "device",
+              "inode",
+              "mode",
+              "size",
+              "mtime_ns",
+              "ctime_ns",
+              "links"
+            ],
+            "additionalProperties": false
+          },
+          "logical_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "allocated_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "unique_inode": {
+            "type": "boolean"
+          },
+          "classification": {
+            "enum": [
+              "SAFE-CANDIDATE",
+              "REVIEW",
+              "PROTECTED",
+              "UNSUPPORTED"
+            ]
+          },
+          "rule_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rule_version": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "application": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "risk": {
+            "enum": [
+              "low",
+              "moderate",
+              "high",
+              "critical"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "side_effects": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "string"
+          },
+          "strategy": {
+            "enum": [
+              "audit-only",
+              "quarantine-bytecode"
+            ]
+          },
+          "evidence": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "active_use": {
+            "const": "unknown"
+          }
+        },
+        "required": [
+          "id",
+          "path",
+          "root",
+          "identity",
+          "logical_bytes",
+          "allocated_bytes",
+          "unique_inode",
+          "classification",
+          "rule_id",
+          "rule_version",
+          "application",
+          "category",
+          "risk",
+          "reason",
+          "side_effects",
+          "recovery",
+          "strategy",
+          "evidence",
+          "active_use"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "classification": {
+            "enum": [
+              "PROTECTED",
+              "UNSUPPORTED"
+            ]
+          }
+        },
+        "required": [
+          "path",
+          "reason",
+          "classification"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "disks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "root": {
+            "type": "string"
+          },
+          "device": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "free": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "root",
+          "device",
+          "free"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "SAFE-CANDIDATE": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "logical_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "allocated_bytes_known": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "count",
+            "logical_bytes",
+            "allocated_bytes_known"
+          ],
+          "additionalProperties": false
+        },
+        "REVIEW": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "logical_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "allocated_bytes_known": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "count",
+            "logical_bytes",
+            "allocated_bytes_known"
+          ],
+          "additionalProperties": false
+        },
+        "PROTECTED": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "logical_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "allocated_bytes_known": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "count",
+            "logical_bytes",
+            "allocated_bytes_known"
+          ],
+          "additionalProperties": false
+        },
+        "UNSUPPORTED": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "logical_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "allocated_bytes_known": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "count",
+            "logical_bytes",
+            "allocated_bytes_known"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "SAFE-CANDIDATE",
+        "REVIEW",
+        "PROTECTED",
+        "UNSUPPORTED"
+      ],
+      "additionalProperties": false
+    },
+    "changes_made": {
+      "const": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "version",
+    "created_at",
+    "roots",
+    "exclude",
+    "complete",
+    "entries_visited",
+    "entries",
+    "issues",
+    "disks",
+    "summary",
+    "changes_made"
+  ],
+  "additionalProperties": false
+}

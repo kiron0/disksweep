@@ -1,0 +1,28 @@
+[
+  {
+    "id": "windows-crash-dumps",
+    "version": 1,
+    "category": "diagnostics",
+    "application": "Windows Error Reporting",
+    "platforms": [
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      "AppData/Local/CrashDumps"
+    ],
+    "reason": "User crash dump location; audit only",
+    "side_effects": "Keep while troubleshooting; use Storage settings for managed cleanup",
+    "recovery": "Usually irrecoverable after native cleanup",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  }
+]

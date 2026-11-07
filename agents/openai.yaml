@@ -1,0 +1,4 @@
+interface:
+  display_name: "DiskSweep"
+  short_description: "Audit storage and plan safe, approved cleanup"
+  default_prompt: "Use $disksweep to audit my local storage, protect important data, and show a cleanup proposal before making changes."

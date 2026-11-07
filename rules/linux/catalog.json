@@ -1,0 +1,28 @@
+[
+  {
+    "id": "desktop-thumbnails",
+    "version": 1,
+    "category": "application-cache",
+    "application": "Freedesktop thumbnails",
+    "platforms": [
+      "linux"
+    ],
+    "risk": "low",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".cache/thumbnails"
+    ],
+    "reason": "Freedesktop thumbnail cache location; audit only",
+    "side_effects": "Thumbnail regeneration consumes CPU; preserve unknown files",
+    "recovery": "Regenerates from original media",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  }
+]

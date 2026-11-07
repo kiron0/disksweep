@@ -1,0 +1,3 @@
+# Runtime has no dependencies. These are validation tools only.
+jsonschema>=4.23,<5
+PyYAML>=6.0.2,<7

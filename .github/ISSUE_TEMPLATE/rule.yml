@@ -1,0 +1,17 @@
+name: Rule proposal
+description: Propose a narrowly scoped detector or native integration.
+body:
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and compatibility
+      description: Identify generating application, exact location, supported OS/tool versions, and authoritative documentation.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Protection, side effects, recovery, approval, and tests
+      description: Explain exclusions, active-use handling, reproducibility, and positive/negative/adversarial fixtures.
+    validations:
+      required: true

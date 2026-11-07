@@ -1,0 +1,226 @@
+[
+  {
+    "id": "python-bytecode",
+    "version": 1,
+    "category": "developer-cache",
+    "application": "CPython",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "SAFE-CANDIDATE",
+    "strategy": "quarantine-bytecode",
+    "signatures": [],
+    "reason": "CPython-tagged bytecode with an existing regular source file and a recognized project marker",
+    "side_effects": "Python recompiles bytecode; requires stopped workload, age >=24h, one hard link, matching runtime magic before quarantine",
+    "recovery": "Restore the quarantined link without overwriting an existing file, or regenerate from source",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "pip-downloads",
+    "version": 1,
+    "category": "package-cache",
+    "application": "pip",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".cache/pip",
+      "Library/Caches/pip",
+      "AppData/Local/pip/Cache"
+    ],
+    "reason": "Documented pip download-cache location",
+    "side_effects": "Offline installs may need downloads; pip cache may contain locally built wheels",
+    "recovery": "Native purge is irreversible; packages may be downloaded again",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "npm-downloads",
+    "version": 1,
+    "category": "package-cache",
+    "application": "npm",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".npm/_cacache",
+      "npm-cache/_cacache"
+    ],
+    "reason": "npm content-addressed download cache",
+    "side_effects": "Offline installs may fail until downloads are restored",
+    "recovery": "Native cache cleaning is irreversible; packages may be downloaded again",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "yarn-downloads",
+    "version": 1,
+    "category": "package-cache",
+    "application": "Yarn",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".cache/yarn",
+      "Library/Caches/Yarn"
+    ],
+    "reason": "Recognized Yarn download-cache location",
+    "side_effects": "Keep when offline or shared by projects",
+    "recovery": "Re-download subject to registry availability",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "bun-downloads",
+    "version": 1,
+    "category": "package-cache",
+    "application": "Bun",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".bun/install/cache"
+    ],
+    "reason": "Documented Bun install cache",
+    "side_effects": "Shared dependency cache; preserve offline dependencies",
+    "recovery": "Re-download subject to registry availability",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "cargo-downloads",
+    "version": 1,
+    "category": "package-cache",
+    "application": "Cargo",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".cargo/registry/cache"
+    ],
+    "reason": "Cargo registry archive cache; analysis only",
+    "side_effects": "Offline cargo builds may need these archives",
+    "recovery": "Registry availability required for regeneration",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "gradle-cache",
+    "version": 1,
+    "category": "developer-cache",
+    "application": "Gradle",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".gradle/caches"
+    ],
+    "reason": "Gradle cache metadata location; may include irreplaceable local artifacts",
+    "side_effects": "Shared state and offline dependencies; never blanket-delete",
+    "recovery": "Unknown; preserve unless exact native operation is reviewed",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "xcode-derived",
+    "version": 1,
+    "category": "build-cache",
+    "application": "Xcode",
+    "platforms": [
+      "macos"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      "Library/Developer/Xcode/DerivedData"
+    ],
+    "reason": "Xcode DerivedData location",
+    "side_effects": "Rebuild/reindex cost; stop Xcode before any native cleanup",
+    "recovery": "Rebuild only; no promise all contents are reproducible",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  }
+]

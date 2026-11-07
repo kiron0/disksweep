@@ -1,0 +1,72 @@
+"""Validate skill metadata, references, rule policy, schemas and helper AST.
+
+Development tool only. --strict requires PyYAML and jsonschema.
+"""
+import ast
+import json
+from pathlib import Path
+import re
+import sys
+
+BASE = Path(__file__).resolve().parent.parent
+
+
+def check():
+    strict = "--strict" in sys.argv
+    text = (BASE / "SKILL.md").read_text(encoding="utf-8")
+    assert text.startswith("---\n"), "Missing frontmatter"
+    _, front, body = text.split("---", 2)
+    try:
+        import yaml
+        meta = yaml.safe_load(front)
+    except ImportError:
+        assert not strict, "Install requirements-dev.txt for strict validation"
+        meta = dict(re.findall(r"^(name|description|license|compatibility): (.+)$", front, re.M))
+    assert meta["name"] == "disksweep"
+    assert 0 < len(meta["description"]) <= 1024 and "<" not in meta["description"]
+    assert meta["license"] == "MIT" and len(meta["compatibility"]) <= 500
+    assert set(meta) <= {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
+    assert len(body.splitlines()) < 500, "Keep the entry point concise"
+    for file in BASE.rglob("*.md"):
+        if ".git" in file.parts or ".venv" in file.parts:
+            continue
+        for target in re.findall(r"\]\(([^)]+)\)", file.read_text(encoding="utf-8")):
+            if re.match(r"[a-z]+://", target) or target.startswith("#"):
+                continue
+            assert (file.parent / target.split("#")[0]).exists(), f"Broken reference in {file.name}: {target}"
+    from _core import read_rules
+    rules = read_rules()
+    required = {"id", "version", "category", "application", "platforms", "risk", "classification", "strategy", "signatures", "reason", "side_effects", "recovery", "exclusions", "supported_versions", "post_check"}
+    for rule in rules:
+        assert set(rule) == required, f"Missing or unexpected rule fields: {rule['id']}"
+        assert rule["platforms"] and set(rule["platforms"]) <= {"linux", "macos", "windows"}
+        assert rule["risk"] in {"low", "moderate", "high", "critical"}
+        assert all(isinstance(s, str) and s and ".." not in s.split("/") for s in rule["signatures"])
+        assert rule["signatures"] or rule["id"] == "python-bytecode"
+    schemas = list((BASE / "schemas").glob("*.json"))
+    try:
+        from jsonschema import Draft202012Validator
+        for file in schemas:
+            Draft202012Validator.check_schema(json.loads(file.read_text(encoding="utf-8")))
+    except ImportError:
+        assert not strict, "Install requirements-dev.txt for strict validation"
+        for file in schemas:
+            json.loads(file.read_text(encoding="utf-8"))
+    forbidden = {"eval", "exec", "unlink", "remove", "rmdir", "rmtree"}
+    for file in (BASE / "scripts").glob("*.py"):
+        tree = ast.parse(file.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            name = node.func.id if isinstance(node.func, ast.Name) else getattr(node.func, "attr", "")
+            assert name not in forbidden, f"Forbidden runtime operation: {file.name}:{node.lineno}"
+            assert not (name == "system" and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and node.func.value.id == "os"), "OS shell execution forbidden"
+            assert not any(k.arg == "shell" and not (isinstance(k.value, ast.Constant) and k.value.value is False) for k in node.keywords), "Shell execution forbidden"
+    cases = json.loads((BASE / "evals/evals.json").read_text(encoding="utf-8"))
+    assert len(cases["evals"]) >= 8
+    assert len({x["id"] for x in cases["evals"]}) == len(cases["evals"])
+    print(f"Validated disksweep: metadata, Markdown links, {len(rules)} rules, {len(schemas)} schemas, runtime AST, {len(cases['evals'])} behavioral cases")
+
+
+if __name__ == "__main__":
+    check()

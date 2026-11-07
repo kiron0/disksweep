@@ -1,0 +1,20 @@
+name: Bug report
+description: Report a reproducible audit or workflow problem using synthetic data.
+body:
+  - type: markdown
+    attributes:
+      value: Use private security reporting for vulnerabilities. Do not attach personal inventories, paths, secrets, or approval state.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS version, Python version, agent, and DiskSweep version; no usernames or private paths.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Synthetic reproduction and expected behavior
+      description: Use a temporary fixture with invented filenames.
+    validations:
+      required: true

@@ -1,0 +1,54 @@
+[
+  {
+    "id": "homebrew-downloads",
+    "version": 1,
+    "category": "package-cache",
+    "application": "Homebrew",
+    "platforms": [
+      "macos"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      "Library/Caches/Homebrew"
+    ],
+    "reason": "Homebrew download cache location",
+    "side_effects": "Use brew cleanup --dry-run first; preserve offline bottles",
+    "recovery": "Re-download where still available",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "macos-diagnostics",
+    "version": 1,
+    "category": "diagnostics",
+    "application": "macOS",
+    "platforms": [
+      "macos"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      "Library/Logs/DiagnosticReports"
+    ],
+    "reason": "User DiagnosticReports metadata; audit only",
+    "side_effects": "Logs may be required for troubleshooting or incident investigation",
+    "recovery": "Usually irrecoverable after deletion",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  }
+]
