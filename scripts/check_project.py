@@ -60,6 +60,12 @@ def check():
     forbidden = {"eval", "exec", "unlink", "remove", "rmdir", "rmtree"}
     for file in (BASE / "scripts").glob("*.py"):
         tree = ast.parse(file.read_text(encoding="utf-8"))
+        native_deletes = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                          and n.func.attr == 'SetFileInformationByHandle']
+        if native_deletes:
+            assert file.name == '_windows_file.py' and len(native_deletes) == 1, 'Only one native Windows removal disposition is permitted'
+            guard = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'mark_for_removal')
+            assert native_deletes[0] in list(ast.walk(guard)), 'Native removal must stay in its guarded handle primitive'
         if file.name == "_purge.py":
             removals = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "unlink"]
             execute = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "execute")

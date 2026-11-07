@@ -82,6 +82,14 @@ def _save(file, value):
         json.dump(value, stream, ensure_ascii=True); stream.flush(); os.fsync(stream.fileno())
 
 
+def _absent(path):
+    try:
+        Path(path).lstat()
+        return False
+    except FileNotFoundError:
+        return True
+
+
 def execute(request):
     core.require(request.get('user_approved') is True and request.get('acknowledge_irreversible') is True,
                  'Submit explicit approval of permanent deletion before executing')
@@ -127,7 +135,7 @@ def execute(request):
                 windows.mark_for_removal(opened)
                 item['deletion_requested'] = True
                 opened.close()
-                core.require(not os.path.lexists(entry['path']), 'Path remains or regenerated; do not retry removal')
+                core.require(_absent(entry['path']), 'Path remains or regenerated; do not retry removal')
                 item.update(status='permanently-removed', verified_absent=True)
             except (OSError, core.Refusal):
                 item['reason'] = 'Removal stopped; inspect records before any new approval'
@@ -155,12 +163,14 @@ def verify(request):
     core.require(intent_file.stat().st_size <= 32 * 1024**2, 'Intent record is too large')
     intent = json.loads(intent_file.read_text(encoding='utf-8'))
     core.require(intent['id'] == identifier and intent['plan_digest'] == result['plan_digest'], 'Operation records disagree')
+    plan_payload = {key: value for key, value in intent['plan'].items() if key != 'digest'}
+    core.require(core.digest(plan_payload) == intent['plan']['digest'] == result['plan_digest'], 'Recorded plan digest changed')
     index = {entry['id']: entry for entry in intent['plan']['entries']}
     for item in result['items']:
         entry = index[item['candidate_id']]
         try:
             core.absolute(Path(entry['path']).parent)
-            item['verified_absent'] = item['status'] == 'permanently-removed' and not os.path.lexists(entry['path'])
+            item['verified_absent'] = item['status'] == 'permanently-removed' and _absent(entry['path'])
         except (OSError, core.Refusal):
             item['verified_absent'] = False
     result['all_verified'] = len(result['items']) == len(intent['selected_ids']) and all(item['verified_absent'] for item in result['items'])
