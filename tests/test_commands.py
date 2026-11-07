@@ -57,6 +57,69 @@ class Commands(Fixture):
         if os.name == "posix":
             self.assertEqual(output.stat().st_mode & 0o777, 0o600)
 
+    def test_start_never_inspects_folders_or_assumes_scope(self):
+        before = set(self.base.rglob("*"))
+        missing = self.base / "does-not-exist"
+        result = self.data("start", "--goal", "developer", "--root", missing)
+        self.assertFalse(result["scope_required"])
+        self.assertIn(str(missing), result["suggested_arguments"])
+        self.assertFalse(result["execution_authorized"])
+        self.assertTrue(self.data("start")["scope_required"])
+        duplicates = self.data("start", "--goal", "duplicates")
+        self.assertNotIn("--allow-content-read", duplicates["suggested_arguments"])
+        self.call("start", "--root", "", success=False)
+        self.assertEqual(before, set(self.base.rglob("*")))
+
+    def test_explain_uses_saved_evidence_without_touching_changed_files(self):
+        file, scanned = self.save_audit()
+        selected = self.candidate(scanned["inventory"])["id"]
+        # Removing the live file cannot turn an explanation into a fresh validation.
+        self.bytecode.unlink()
+        result = self.data("explain", "--input", file, "--candidate", selected)
+        candidate = result["candidates"][0]
+        self.assertIn("source_identity", candidate["recorded_evidence_fields"])
+        self.assertNotIn(str(self.root), json.dumps(result))
+        self.assertEqual(candidate["current_eligibility"], "not-checked")
+        self.assertFalse(result["execution_authorized"])
+        private = self.data("explain", "--input", file, "--candidate", selected, "--private")
+        self.assertEqual(private["candidates"][0]["evidence"]["source"], str(self.source))
+        self.assertFalse(self.state.exists())
+
+    def test_explain_refuses_prefixes_unknown_and_duplicate_ids(self):
+        file, scanned = self.save_audit()
+        selected = self.candidate(scanned["inventory"])["id"]
+        for values in ([selected[:8]], ["f" * 24], [selected, selected]):
+            with self.subTest(values=values):
+                args = [item for value in values for item in ("--candidate", value)]
+                self.call("explain", "--input", file, *args, success=False)
+        self.assertFalse(self.state.exists())
+
+    def test_scan_guidance_preserves_protected_files_and_reports_partial_coverage(self):
+        import _guide as guide
+        protected = self.base / "documents"; protected.mkdir()
+        (protected / "keep.txt").write_text("keep")
+        result = self.data("scan", "quick", "--root", protected)
+        self.assertEqual(result["guidance"]["recorded_bytecode_candidates"], 0)
+        self.assertFalse(result["guidance"]["suggested_arguments"])
+        self.assertIn("Preserve protected", result["guidance"]["message"])
+        audit_result = self.inventory(max_entries=1)
+        guidance = guide.next_steps(audit_result)
+        self.assertFalse(guidance["coverage_complete"])
+        self.assertIn("partial", guidance["message"])
+        full_inventory = self.inventory()
+        with patch.object(guide.os, "name", "nt"):
+            self.assertEqual(guide.next_steps(full_inventory)["recorded_bytecode_candidates"], 0)
+
+    def test_scan_guidance_supplies_exact_review_arguments_without_approval(self):
+        file, scanned = self.save_audit()
+        selected = self.candidate(scanned["inventory"])["id"]
+        guidance = scanned["guidance"]
+        if os.name == "posix":
+            self.assertIn(["explain", "--input", str(file), "--candidate", selected], guidance["suggested_arguments"])
+        self.assertFalse(guidance["execution_authorized"])
+        self.assertTrue(self.bytecode.exists())
+        self.assertFalse(self.state.exists())
+
     def test_missing_roots_and_approval_flags_fail_before_state_creation(self):
         self.call("scan", "quick", success=False)
         self.call("approve", "quarantine", "--state-dir", self.state, "--plan-id", "fake", "--digest", "fake", "--note", "not approval", success=False)

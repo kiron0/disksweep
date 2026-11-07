@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add guided `start` workflows without implicit scans or permissions.
+- Add `explain` for exact saved findings, with optional private evidence.
+- Give scoped audits contextual review steps, partial-coverage warnings and
+  protected-only guidance without implying current execution eligibility.
+- Clarify why skills.sh installations use the GitHub source name.
+
 ## 0.1.1 — 2026-11-07
 
 - Add documented commands and subcommands for every workflow through one optional

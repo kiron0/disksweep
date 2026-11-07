@@ -5,7 +5,7 @@
 In **Codex chat**, type:
 
 ```text
-$swipr help
+$swipr start
 $swipr scan quick --root ~/Downloads
 ```
 
@@ -32,9 +32,11 @@ There is no separate `swipr` executable or npm package to install.
 | Command | Subcommands | Purpose |
 |---|---|---|
 | `help` | Any command path | Show help without scanning |
+| `start` | `--goal quick/developer/emergency/health/large/duplicates` | Suggest a workflow without inspecting files |
 | `doctor` | — | Check capabilities, disk space and tools |
 | `scan` | `quick`, `deep`, `developer`, `emergency`, `targeted`, `health`, `safe-cleanup`, `custom` | Scoped read-only audit |
 | `find` | `large`, `directories`, `duplicates` | Discover storage consumers |
+| `explain` | `--input AUDIT_JSON --candidate FULL_ID` | Explain saved findings without rescanning |
 | `inspect` | `apps`, `storage`, `docker`, `activity`, `leftovers`, `trash`, `recycle-bin` | Inspect native and protected metadata |
 | `plan` | `create`, `purge`, `show`, `validate` | Prepare and review exact plans |
 | `approve` | `quarantine`, `purge` | Record fresh, explicit approval |
@@ -48,6 +50,20 @@ There is no separate `swipr` executable or npm package to install.
 The terminal examples below omit no installation step: run them from the repository,
 or replace `scripts/swipr.py` with your installed helper path. Replace uppercase IDs
 and `/path/...` placeholders with actual results and authorized locations.
+
+## Guided first use
+
+```sh
+python scripts/swipr.py start
+python scripts/swipr.py start --goal developer --root "/path/to/project"
+python scripts/swipr.py start --goal duplicates --json
+```
+
+`start` suggests argument arrays and the next review steps. It does not scan,
+probe paths, create state, or grant permission. Without `--root`, replace `PATH`
+with a folder you authorize. Repeat `--root` for several folders. Run `doctor`
+to check capabilities. Duplicate suggestions omit `--allow-content-read` until
+you explicitly approve content hashing.
 
 ## Help and capability discovery
 
@@ -74,6 +90,31 @@ python scripts/swipr.py scan targeted --root "/path/to/cache" --exclude "/path/t
 `safe-cleanup` prepares recommendations; it never silently executes them.
 `emergency` never weakens protection. Separate mount roots need separate authorization.
 All scan modes use explicit roots and bounded inspection.
+
+Saved scan results include `guidance`: coverage status, a count and up to five
+IDs of recorded bytecode findings, and `explain` argument arrays when `--output`
+was supplied. These hints do not validate current eligibility or authorize a plan.
+Partial coverage and protected-only results receive appropriate next steps.
+
+## Explain a saved finding
+
+```sh
+python scripts/swipr.py explain --input audit.json --candidate FULL_ID
+python scripts/swipr.py explain --input audit.json --candidate FIRST_FULL_ID --candidate SECOND_FULL_ID --private
+```
+
+Copy full 24-character IDs from the saved audit's `inventory.entries` or
+`guidance.sample_candidate_ids`. Prefixes, unknown IDs and duplicate selections
+are refused. Select at most 100 findings per explanation.
+
+The result includes classification, risk, logical/allocated bytes, rule version,
+reason, recorded evidence fields, side effects, recovery and a planning hint.
+Paths and evidence values are omitted unless `--private` is used. Keep private
+output local; use `report audit` for a shareable report. Explanation reads only
+the saved JSON: changed or missing live files are not rechecked, active use and
+current eligibility remain unknown, and no plan or approval is created.
+
+## Scan and find options
 
 Shared scan/find options:
 

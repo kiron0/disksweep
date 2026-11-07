@@ -3,6 +3,23 @@
 Run these with your agent's Swipr invocation or the documented Python adapter.
 See [COMMANDS.md](../COMMANDS.md) for all flags and approval requirements.
 
+## Choose a workflow and review evidence
+
+```sh
+python scripts/swipr.py start --goal developer --root "/path/to/project"
+python scripts/swipr.py doctor --path "/path/to/project"
+python scripts/swipr.py scan developer --root "/path/to/project" --output audit.json
+python scripts/swipr.py explain --input audit.json --candidate FULL_ID
+```
+
+The first command only suggests steps. Copy the actual full ID from the saved
+audit; review reason, recorded evidence, effects and recovery. Use `--private`
+only for local inspection of recorded paths and source/project metadata.
+If the file has changed, explanation still describes the snapshot. A new plan
+must revalidate the live file; approval is a separate step. If guidance reports
+partial coverage or only protected findings, address those limits before proposing
+cleanup. Quarantine alone recovers no space.
+
 ## Audit several volumes
 
 ```sh

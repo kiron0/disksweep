@@ -14,7 +14,7 @@ Reclaim space. Remove clutter. Protect what matters.
 
 ## Commands and first use
 
-For `help`, `doctor`, `scan`, `find`, `inspect`, `plan`, `approve`, `clean`, `verify`,
+For `start`, `help`, `doctor`, `scan`, `find`, `explain`, `inspect`, `plan`, `approve`, `clean`, `verify`,
 `report`, `history`, `profile`, or `catalog`, read [COMMANDS.md](COMMANDS.md).
 Run the documented command using the installed `scripts/swipr.py` adapter and an
 argument array. It delegates to the same guarded helpers below. Never construct
@@ -25,6 +25,14 @@ Other hosts may use `Use Swipr: help`. A bare Swipr request shows concise help
 and asks for scope; it does not silently scan the current directory or home.
 If a scan command omits roots and no explicitly selected policy/profile supplies
 them, ask for the intended folders. Never default to the current directory or home.
+
+For a new user or an unclear goal, run `start` (optionally `--goal developer`,
+`emergency`, `health`, `large`, or `duplicates`). It suggests a bounded workflow;
+it does not inspect folders. Pass only explicitly chosen roots. After saving an
+audit, use `explain --input AUDIT_JSON --candidate FULL_ID` to review selected
+findings. Explanations describe saved evidence; fresh plan validation must check
+current files. Keep `--private` evidence local. Read [advanced recipes](docs/advanced.md)
+only for the selected task. Never suggest cleanup when only protected findings exist.
 
 Treat command arguments as requests, not standing authorization. An agent must
 obtain fresh human approval before adding `--confirm`, `--workload-stopped`,

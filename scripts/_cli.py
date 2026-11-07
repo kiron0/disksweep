@@ -12,6 +12,7 @@ import _audit as audit
 import _core as core
 import _native as native
 import _purge as purge
+import _guide as guide
 
 
 def load(path):
@@ -49,7 +50,7 @@ def existing_store(args):
 
 
 def parser():
-    root = argparse.ArgumentParser(prog="swipr", description="Local storage audits and exactly approved cleanup. Start with: scan quick --root PATH")
+    root = argparse.ArgumentParser(prog="swipr", description="Local storage audits and exactly approved cleanup. Start with: start")
     root.add_argument("--version", action="version", version="swipr " + core.VERSION)
     commands = root.add_subparsers(dest="command", metavar="COMMAND")
 
@@ -88,6 +89,13 @@ def parser():
     p = commands.add_parser("help", help="Show command help without scanning")
     p.add_argument("topic", nargs="*")
     p.set_defaults(route="help")
+    p = leaf(commands, "start", "start", "Choose a workflow without scanning or changing files")
+    p.add_argument("--goal", choices=tuple(guide.GOALS), default="quick")
+    p.add_argument("--root", action="append", metavar="PATH", help="Suggest commands for these folders; do not inspect them")
+    p = leaf(commands, "explain", "explain", "Explain exact findings from a saved audit without rescanning")
+    p.add_argument("--input", required=True, metavar="AUDIT_JSON")
+    p.add_argument("--candidate", required=True, action="append", metavar="FULL_ID")
+    p.add_argument("--private", action="store_true", help="Include recorded local paths and evidence values")
     p = leaf(commands, "doctor", "doctor", "Check OS, storage, tools, and supported capabilities")
     p.add_argument("--path", default=str(Path.home()))
 
@@ -212,6 +220,10 @@ def scoped(args):
 
 def dispatch(args):
     route, action = args.route, getattr(args, "action", None)
+    if route == "start":
+        return guide.start(args.goal, args.root)
+    if route == "explain":
+        return guide.explain(inventory(args.input), args.candidate, args.private)
     if route == "doctor":
         return core.probe({"path": args.path})
     if route in {"scan", "find"}:
@@ -234,6 +246,7 @@ def dispatch(args):
                            and (not args.older_than_days or time.time_ns() - e["identity"]["mtime_ns"] >= args.older_than_days * 86400 * 10**9)
                            and (not extensions or Path(e["path"]).suffix.lower() in extensions)]
                 result["matches"] = audit.sort_entries(entries, args.sort)[:min(args.top, 100)]
+        result["guidance"] = guide.next_steps(result["inventory"], args.output)
         return result
     if route == "inspect":
         request = {"authorized": getattr(args, "allow_native", False)}
@@ -325,6 +338,8 @@ def main(argv=None):
         text = result.get("markdown") if isinstance(result, dict) else None
         if args.json:
             display = encoded
+        elif args.route == "start":
+            display = guide.render_start(result)
         elif args.route == "doctor":
             caps = result["capabilities"]
             display = "\n".join(["Swipr " + core.VERSION, "System: " + result["platform"] + " " + result["os_version"],
@@ -342,7 +357,8 @@ def main(argv=None):
                 display += "\nProject evidence analysis is partial; review JSON limits.\n"
             if result["analysis"]["issues"]:
                 display += "\nSome hashes were skipped or limited. An empty match list does not prove there are no duplicates.\n"
-            display += "\n" + ("Full JSON saved. Next: review candidate IDs, then plan create. Nothing was approved.\n" if args.output else "Use --output audit.json to save full IDs for plan create. Nothing was approved.\n")
+            display += "\n" + ("Full JSON saved. " if args.output else "Use --output audit.json to save the complete audit. ")
+            display += result["guidance"]["message"] + " Nothing was approved.\n"
         else:
             display = text or json.dumps(result, ensure_ascii=True, indent=2)
         if output:

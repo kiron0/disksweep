@@ -22,5 +22,10 @@ Only structural ideas were used; no upstream implementation or skill prose is re
 - Use versioned non-executable rules and JSON contracts rather than natural-language deletion guesses.
 - Include behavioral eval prompts as well as filesystem/security regression tests.
 - Preserve the user brief’s repository docs and staged rollout; do not claim stable v1.0 readiness.
+- Route new users through `start`, use task-specific recipes on demand, and explain
+  saved findings with `explain` before any plan. Suggestions never imply permission
+  or current eligibility. Test missing scope, stale evidence, protected-only and
+  partial results. These apply the routing, progressive disclosure, concrete example
+  and evidence-gate patterns in the five sources above.
 
 Additional specification reference: https://agentskills.io/specification . Codex UI metadata follows the public `agents/openai.yaml` pattern in https://github.com/openai/skills . These are supporting references, outside the five-collection comparison.
