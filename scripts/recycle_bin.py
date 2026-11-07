@@ -1,4 +1,4 @@
-"""Agent-internal DiskSweep recycle_bin; one JSON request on stdin."""
+"""Agent-internal Swipr recycle_bin; one JSON request on stdin."""
 from _protocol import run
 from _native import recycle_bin
 

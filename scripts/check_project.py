@@ -22,7 +22,7 @@ def check():
     except ImportError:
         assert not strict, "Install requirements-dev.txt for strict validation"
         meta = dict(re.findall(r"^(name|description|license|compatibility): (.+)$", front, re.M))
-    assert meta["name"] == "disksweep"
+    assert meta["name"] == "swipr"
     assert 0 < len(meta["description"]) <= 1024 and "<" not in meta["description"]
     assert meta["license"] == "MIT" and len(meta["compatibility"]) <= 500
     assert set(meta) <= {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
@@ -75,7 +75,7 @@ def check():
     cases = json.loads((BASE / "evals/evals.json").read_text(encoding="utf-8"))
     assert len(cases["evals"]) >= 8
     assert len({x["id"] for x in cases["evals"]}) == len(cases["evals"])
-    print(f"Validated disksweep: metadata, Markdown links, {len(rules)} rules, {len(schemas)} schemas, runtime AST, {len(cases['evals'])} behavioral cases")
+    print(f"Validated swipr: metadata, Markdown links, {len(rules)} rules, {len(schemas)} schemas, runtime AST, {len(cases['evals'])} behavioral cases")
 
 
 if __name__ == "__main__":

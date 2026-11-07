@@ -1,4 +1,4 @@
-"""Agent-internal DiskSweep activity; one JSON request on stdin."""
+"""Agent-internal Swipr activity; one JSON request on stdin."""
 from _protocol import run
 from _native import activity
 

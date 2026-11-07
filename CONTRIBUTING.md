@@ -19,7 +19,7 @@ python3 -m venv .venv
 ```
 
 On Windows use `.venv\Scripts\python.exe`. Build a local skill archive with
-`python3 scripts/package_skill.py dist/disksweep.skill`.
+`python3 scripts/package_skill.py dist/swipr.skill`.
 
 ## Rule release gate
 

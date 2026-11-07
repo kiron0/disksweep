@@ -1,6 +1,6 @@
 # Feature coverage
 
-DiskSweep follows the five public skill collections recorded in
+Swipr follows the five public skill collections recorded in
 [structure research](structure-research.md): a concise entry point, progressive
 references, focused helpers, versioned rules, schemas, assets, and executable tests.
 

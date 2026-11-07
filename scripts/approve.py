@@ -1,4 +1,4 @@
-"""Agent-internal DiskSweep approve helper; one JSON request on stdin."""
+"""Agent-internal Swipr approve helper; one JSON request on stdin."""
 from _protocol import run
 from _core import approve
 

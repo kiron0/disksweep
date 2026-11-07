@@ -1,5 +1,5 @@
 ---
-name: disksweep
+name: swipr
 description: Audit local disk usage and plan safe system cleanup on macOS, Windows, and Linux. Use when users ask to clean their computer, free disk space, inspect caches, application leftovers, developer storage, Trash, large or duplicate files, or storage health. Run read-only scans first, protect personal and system data, and require fresh approval of an exact plan before any file changes. Permanent removal of private bytecode quarantine needs separate irreversible approval.
 license: MIT
 compatibility: Requires a local agent with filesystem tools and Python 3.10 or later. Metadata audits support macOS, Windows, and Linux. Secure duplicate hashing and controlled bytecode quarantine require POSIX directory handles; Windows execution is disabled.
@@ -8,7 +8,7 @@ metadata:
   version: "0.1.0"
 ---
 
-# DiskSweep
+# Swipr
 
 Reclaim space. Remove clutter. Protect what matters.
 

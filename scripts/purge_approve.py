@@ -1,4 +1,4 @@
-"""Agent-internal DiskSweep purge_approve; one JSON request on stdin."""
+"""Agent-internal Swipr purge_approve; one JSON request on stdin."""
 from _protocol import run
 from _purge import approve
 

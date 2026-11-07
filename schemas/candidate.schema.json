@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/kiron0/disksweep/schemas/candidate.schema.json",
-  "title": "DiskSweep candidate",
+  "$id": "https://github.com/kiron0/swipr/schemas/candidate.schema.json",
+  "title": "Swipr candidate",
   "type": "object",
   "properties": {
     "id": {

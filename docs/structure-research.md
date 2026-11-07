@@ -4,7 +4,7 @@ Research date: 2026-11-07.
 
 Selection: five leading multi-skill collections in the first 15 results of GitHub repository search `agent skills in:name,description`, sorted by stars descending. Curated application lists and single-purpose skill repositories were excluded. This is a documented comparison set, not a claim of an authoritative universal “top five” leaderboard. Star counts change.
 
-Only structural ideas were used; no upstream implementation or skill prose is redistributed. DiskSweep is independently written and MIT licensed. Anthropic’s example skill-creator has its own Apache-2.0 license; do not infer a repository-wide license from GitHub metadata.
+Only structural ideas were used; no upstream implementation or skill prose is redistributed. Swipr is independently written and MIT licensed. Anthropic’s example skill-creator has its own Apache-2.0 license; do not infer a repository-wide license from GitHub metadata.
 
 | Collection | Stars at inspection | Inspected skill / pinned revision | Applied structure |
 |---|---:|---|---|

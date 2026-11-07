@@ -1,4 +1,4 @@
-"""Agent-internal DiskSweep profiles; one JSON request on stdin."""
+"""Agent-internal Swipr profiles; one JSON request on stdin."""
 from _protocol import run
 from _audit import profiles
 

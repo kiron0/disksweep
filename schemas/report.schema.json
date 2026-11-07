@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/kiron0/disksweep/schemas/report.schema.json",
-  "title": "DiskSweep report",
+  "$id": "https://github.com/kiron0/swipr/schemas/report.schema.json",
+  "title": "Swipr report",
   "type": "object",
   "properties": {
     "markdown": {

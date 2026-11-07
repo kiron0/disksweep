@@ -13,4 +13,4 @@ does not prove files are unused. Do not force-close browsers.
 Offer the browser's supported Clear Browsing Data / cache-only control for the user's
 own review. Clearly distinguish cached images/files from cookies and website data.
 Warn that cache regeneration can cost network and CPU, and offline pages may be affected.
-DiskSweep does not automate that UI or claim a fixed bytecode plan authorizes it.
+Swipr does not automate that UI or claim a fixed bytecode plan authorizes it.

@@ -1,25 +1,25 @@
-# Using DiskSweep
+# Using Swipr
 
 ## Installation
 
 Install with the Skills CLI:
 
 ```sh
-npx skills add kiron0/disksweep --skill disksweep
+npx skills add kiron0/swipr --skill swipr
 ```
 
 Alternatively, clone this repository into your agent's skill directory as
-`disksweep/`. Common locations are `~/.agents/skills/disksweep/` for Codex and
-`~/.claude/skills/disksweep/` for Claude Code. Follow your agent's installation
+`swipr/`. Common locations are `~/.agents/skills/swipr/` for Codex and
+`~/.claude/skills/swipr/` for Claude Code. Follow your agent's installation
 instructions if it uses a different location.
 
 You need Python 3.10+ and permission for the agent to inspect local files.
-DiskSweep's helpers run locally without accounts, telemetry, or runtime packages.
+Swipr's helpers run locally without accounts, telemetry, or runtime packages.
 The hosting agent and installer have their own privacy settings.
 
 ## Start with an audit
 
-> Use DiskSweep to audit my storage. Start with known caches and show a report without changing files.
+> Use Swipr to audit my storage. Start with known caches and show a report without changing files.
 
 Your agent proposes folders to inspect. Choose the scope and name anything to
 exclude, such as cloud folders, backups, work projects, or offline dependencies.
@@ -49,7 +49,7 @@ on macOS and Linux; Windows currently supports metadata audits only.
 
 > Inspect browser resource caches. Preserve passwords, sessions, bookmarks, and offline website data.
 
-Browser findings lead to the browser's own cache controls. DiskSweep does not
+Browser findings lead to the browser's own cache controls. Swipr does not
 delete browser profiles or automate browser cleanup.
 
 **Docker storage**
@@ -57,7 +57,7 @@ delete browser profiles or automate browser cleanup.
 > Review storage in my local Docker context. Keep every volume and database.
 
 Your agent confirms the Docker context before optional read-only queries.
-DiskSweep does not prune Docker resources.
+Swipr does not prune Docker resources.
 
 ## Approve a supported move
 

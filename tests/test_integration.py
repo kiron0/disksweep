@@ -50,11 +50,11 @@ class IntegrationTests(Fixture):
         self.assertEqual(a.read_bytes(), b.read_bytes())
         with zipfile.ZipFile(a) as archive:
             names = archive.namelist()
-            self.assertIn("disksweep/SKILL.md", names)
-            self.assertIn("disksweep/SECURITY.md", names)
-            self.assertIn("disksweep/docs/usage.md", names)
-            self.assertIn("disksweep/scripts/_core.py", names)
-            self.assertIn("disksweep/rules/developer/catalog.json", names)
+            self.assertIn("swipr/SKILL.md", names)
+            self.assertIn("swipr/SECURITY.md", names)
+            self.assertIn("swipr/docs/usage.md", names)
+            self.assertIn("swipr/scripts/_core.py", names)
+            self.assertIn("swipr/rules/developer/catalog.json", names)
             self.assertFalse(any("__pycache__" in n or "/.git/" in n or "/tests/" in n for n in names))
 
     def test_extended_audit_and_permanent_cleanup_json_protocol(self):

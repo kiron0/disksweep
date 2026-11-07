@@ -1,6 +1,6 @@
 # Security
 
-DiskSweep 0.1.0 supports local audits, restricted bytecode quarantine, and a separate
+Swipr 0.1.0 supports local audits, restricted bytecode quarantine, and a separate
 permanent-removal protocol for exact verified private bytecode quarantine. An
 independent security audit has not been performed.
 Read references/safety-policy.md and references/recovery.md before enabling execution.
@@ -29,7 +29,7 @@ Use explicit exclusions. Reports and Docker metadata can contain private informa
 ## Report a vulnerability
 
 Use the repository's **Security → Advisories → Report a vulnerability** feature when
-available: https://github.com/kiron0/disksweep/security/advisories/new . If private
+available: https://github.com/kiron0/swipr/security/advisories/new . If private
 reporting is unavailable, open a minimal issue requesting a private contact method,
 without exploit details, credentials, local paths, or inventories. Do not post sensitive
 proof-of-concept data publicly. No response-time guarantee is currently offered.

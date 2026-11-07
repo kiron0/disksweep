@@ -1,4 +1,4 @@
-"""Agent-internal DiskSweep execute helper; one JSON request on stdin."""
+"""Agent-internal Swipr execute helper; one JSON request on stdin."""
 from _protocol import run
 from _core import execute
 

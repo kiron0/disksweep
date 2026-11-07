@@ -40,7 +40,7 @@ def operation_report(request):
     verified = sum(bool(x.get("verified", x.get("verified_absent", False))) for x in successful)
     failed = sum(x["status"] == "failed-stop" for x in result["items"])
     irreversible = result.get("irreversible", False)
-    lines = ["# DiskSweep Cleanup Report", "", "Operation: " + result["id"],
+    lines = ["# Swipr Cleanup Report", "", "Operation: " + result["id"],
              "Status: " + ("verified" if result["all_verified"] else "partial or verification incomplete"),
              "", f"Approved: {len(approved)}; processed: {len(successful)}; verified: {verified}; failed: {failed}; unattempted: {len(approved - attempted)}.",
              f"Available bytes before: {result['before_free']}; after: {result['after_free']}; observed delta: {result['observed_free_delta']}.",

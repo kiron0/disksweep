@@ -1,4 +1,4 @@
-"""DiskSweep's offline, standard-library-only filesystem and policy engine.
+"""Swipr's offline, standard-library-only filesystem and policy engine.
 
 Source-backed bytecode can be quarantined, then permanently removed through a
 separate approval protocol. Other rules are informational; arbitrary deletion
@@ -31,7 +31,7 @@ VERSION = "0.1.0"
 BASE = Path(__file__).resolve().parent.parent
 KINDS = {"SAFE-CANDIDATE", "REVIEW", "PROTECTED", "UNSUPPORTED"}
 PRUNE = {".git", ".svn", ".hg", ".ssh", ".aws", ".gnupg", ".azure",
-         "node_modules", ".venv", "venv", "env", "site-packages", ".disksweep",
+         "node_modules", ".venv", "venv", "env", "site-packages", ".swipr", ".disksweep",
          "onedrive", "dropbox", "google drive", "googledrive", "icloud drive",
          "mobile documents", "cloudstorage", "backups", "backup", "time machine"}
 PROTECTED_PARTS = PRUNE | {"system32", "winsxs", "windowsapps", "keychains",
@@ -685,7 +685,7 @@ def human_report(request):
         # Untrusted names must never become Markdown links, images or HTML.
         value = html.escape(entry["path"].replace("\n", "\\n").replace("\r", "\\r"))
         return re.sub(r"([\\`*_{}\[\]()#+.!|>-])", r"\\\1", value)
-    lines = ["# DiskSweep Storage Audit", "", "Status: read-only; no cleanup performed.",
+    lines = ["# Swipr Storage Audit", "", "Status: read-only; no cleanup performed.",
              "Scope: " + str(len(inventory["roots"])) + " explicitly selected roots.",
              "Coverage: " + ("complete within configured depth" if inventory["complete"] else "partial — inspect issues and limits"),
              "Skipped or limited locations: " + str(len(inventory["issues"])),

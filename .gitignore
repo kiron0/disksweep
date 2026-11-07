@@ -5,5 +5,8 @@ __pycache__/
 htmlcov/
 dist/
 work/
-.disksweep/
+.swipr/
 *.skill
+
+# Preserve private state from development builds.
+.disksweep/

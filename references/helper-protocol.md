@@ -118,7 +118,7 @@ import subprocess
 import sys
 
 response = subprocess.run(
-    [sys.executable, "/installed/disksweep/scripts/inventory.py"],
+    [sys.executable, "/installed/swipr/scripts/inventory.py"],
     input=json.dumps({"roots": ["/user/authorized/project"]}),
     text=True, capture_output=True, check=True,
 )

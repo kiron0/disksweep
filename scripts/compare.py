@@ -1,4 +1,4 @@
-"""Agent-internal DiskSweep compare; one JSON request on stdin."""
+"""Agent-internal Swipr compare; one JSON request on stdin."""
 from _protocol import run
 from _audit import compare
 

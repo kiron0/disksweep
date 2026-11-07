@@ -1,4 +1,4 @@
-# DiskSweep Storage Audit
+# Swipr Storage Audit
 
 Status: {{read-only | complete | partial}}
 Scope: {{redacted authorized roots and exclusions}}
