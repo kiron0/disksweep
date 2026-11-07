@@ -10,6 +10,8 @@
   and restoration without overwriting existing files.
 - Add JSON schemas, temporary-filesystem regression tests, behavioral eval cases,
   multi-platform CI, and security checks.
+- Use complete Windows filesystem metadata rather than directory-entry identity
+  caches, and keep symlink fixtures independent of macOS temporary-directory prefixes.
 
 Permanent deletion and automatic native maintenance are not enabled. This is a
 preview of the brief's staged rollout, not a claim that all v1.0 goals are complete.

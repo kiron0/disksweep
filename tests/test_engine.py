@@ -81,7 +81,7 @@ class InventoryTests(Fixture):
             self.skipTest("Symlink privileges vary on Windows")
         outside = self.base / "outside"; outside.mkdir(); (outside / "private").write_text("private")
         link = self.root / "link"; link.symlink_to(outside, target_is_directory=True)
-        self.assertFalse(any("private" in x["path"] for x in self.inventory()["entries"]))
+        self.assertFalse(any(Path(x["path"]).name == "private" for x in self.inventory()["entries"]))
         with self.assertRaises(core.Refusal):
             core.scan({"roots": [str(link)]})
 

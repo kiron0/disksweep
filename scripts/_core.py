@@ -247,7 +247,9 @@ def scan(request):
                         count += 1
                         path = directory / item.name
                         try:
-                            s = item.stat(follow_symlinks=False)
+                            # Windows DirEntry.stat caches zero device/inode/link IDs.
+                            # lstat() retrieves the complete filesystem identity there.
+                            s = path.lstat() if platform_id() == "windows" else item.stat(follow_symlinks=False)
                             if redirect(s) or s.st_dev != rootdev or os.path.ismount(path) or path in mounts:
                                 issues.append({"path": str(path), "reason": "redirection-or-mount"}); continue
                             if item.is_dir(follow_symlinks=False):

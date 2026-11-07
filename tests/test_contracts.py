@@ -1,4 +1,5 @@
 import json
+import contextlib
 import os
 from pathlib import Path
 import sys
@@ -36,6 +37,31 @@ class ContractTests(Fixture):
 
 
 class RuleTests(Fixture):
+    def test_windows_directory_cache_zeros_do_not_hide_files(self):
+        original_scandir = os.scandir
+        class WindowsCachedEntry:
+            def __init__(self, item):
+                self.item = item
+                self.name = item.name
+
+            def stat(self, **kwargs):
+                values = list(self.item.stat(**kwargs))
+                values[1:4] = [0, 0, 0]  # documented Windows DirEntry identity cache
+                return os.stat_result(values)
+
+            def is_dir(self, **kwargs):
+                return self.item.is_dir(**kwargs)
+
+        @contextlib.contextmanager
+        def cached_scandir(path):
+            with original_scandir(path) as entries:
+                yield (WindowsCachedEntry(item) for item in entries)
+
+        with patch.object(core, "platform_id", return_value="windows"), patch.object(core.os, "scandir", cached_scandir):
+            inventory = self.inventory()
+        self.assertEqual(self.candidate(inventory)["classification"], "SAFE-CANDIDATE")
+        self.assertTrue(inventory["complete"])
+
     def test_each_audit_signature_and_protected_override(self):
         rules = core.read_rules()
         for rule in rules:
