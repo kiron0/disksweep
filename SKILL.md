@@ -4,7 +4,7 @@ description: Audit local disk usage and plan safe system cleanup on macOS, Windo
 license: MIT
 compatibility: Requires a local agent with filesystem tools and Python 3.10 or later. Metadata audits support macOS, Windows, and Linux. Secure duplicate hashing and controlled bytecode quarantine require POSIX directory handles; Windows execution is disabled.
 metadata:
-  author: kiron0
+  author: Toufiq Hasan Kiron
   version: "0.1.1"
 ---
 
