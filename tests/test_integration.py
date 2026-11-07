@@ -52,6 +52,8 @@ class IntegrationTests(Fixture):
             names = archive.namelist()
             self.assertIn("swipr/SKILL.md", names)
             self.assertIn("swipr/SECURITY.md", names)
+            self.assertIn("swipr/COMMANDS.md", names)
+            self.assertIn("swipr/scripts/swipr.py", names)
             self.assertIn("swipr/docs/usage.md", names)
             self.assertIn("swipr/scripts/_core.py", names)
             self.assertIn("swipr/rules/developer/catalog.json", names)

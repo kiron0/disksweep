@@ -1,22 +1,23 @@
-Swipr's first stable release.
+Commands, subcommands, and practical documentation for Swipr.
 
 ```sh
-npx skills add kiron0/swipr --skill swipr
+npx skills add kiron0/swipr@{{TAG}} --skill swipr
 ```
 
-- All seven workflow phases and ten audit modes.
-- 39 versioned rules for application, browser, temporary, diagnostics, and developer storage.
-- Directory analysis, duplicate checks, native app/storage queries, Trash inspection, comparisons, policies, and private snapshots.
-- Exact approval, quarantine, restoration, and separately approved permanent removal of verified private bytecode quarantine.
-- 76 fixture tests, 10 schemas, and Linux/macOS/Windows CI.
+- One command adapter for help, discovery, scoped scans, filtered file discovery,
+  native inspection, plans, approval, cleanup, verification, reports, profiles,
+  snapshots, comparisons and rule catalogs.
+- Copy-paste [command reference](https://github.com/kiron0/swipr/blob/{{TAG}}/COMMANDS.md),
+  [advanced recipes](https://github.com/kiron0/swipr/blob/{{TAG}}/docs/advanced.md), and
+  [skills.sh listing steps](https://github.com/kiron0/swipr/blob/{{TAG}}/docs/publishing.md).
+- Existing scope, identity, policy and approval gates remain enforced by the same
+  deterministic helpers. Existing output files are refused before operations run.
+- Cross-platform tests and strict metadata, rule, schema and security-policy checks
+  pass before publication.
 
-Read the [usage guide](https://github.com/kiron0/swipr/blob/v0.1.0/docs/usage.md),
-[feature coverage](https://github.com/kiron0/swipr/blob/v0.1.0/docs/feature-coverage.md),
-and [platform support](https://github.com/kiron0/swipr/blob/v0.1.0/docs/implementation-status.md).
+Direct file changes require secure POSIX handles and exact approval. Quarantine alone
+frees no space; permanent removal accepts only verified private bytecode quarantine
+with separate irreversible approval. Other categories use native user-guided maintenance.
+See [supported features](https://github.com/kiron0/swipr/blob/{{TAG}}/docs/implementation-status.md).
 
-Direct file changes require secure POSIX handles and exact approval. Other categories
-use native user-guided maintenance. Quarantine alone frees no space; permanent bytecode
-removal requires separate irreversible approval. Platform and tool limitations are
-documented above. Unknown and protected data remain excluded from cleanup.
-
-Assets include the installable skill archive and its SHA-256 checksum. Licensed MIT.
+Assets: versioned skill archive and SHA-256 checksum. Licensed MIT.

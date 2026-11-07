@@ -1,6 +1,7 @@
 """Read-only advanced storage analysis and capability-aware skill modes."""
 from collections import defaultdict
 from pathlib import Path
+import math
 import os
 import time
 
@@ -18,16 +19,23 @@ def policy(value):
     core.require(isinstance(value, dict) and not (set(value) - POLICY_KEYS), "Policy may restrict scan scope only; it cannot grant execution permission")
     for name in ("roots", "exclude"):
         if name in value:
-            core.require(isinstance(value[name], list) and all(isinstance(x, str) for x in value[name]), "Policy paths must be lists")
+            core.require(isinstance(value[name], list) and all(isinstance(x, str) and x for x in value[name]), "Policy paths must be nonempty strings in lists")
+            core.require(name != "roots" or value[name], "A roots restriction cannot be empty")
     for name in ("preserve_offline", "never_permanently_delete"):
         if name in value:
             core.require(isinstance(value[name], bool), "Policy restrictions must be booleans")
+    limits = {"max_entries": (1, 100000), "max_depth": (0, 64), "max_seconds": (.01, 120), "max_hash_bytes": (0, 4 * 1024**3)}
+    for name, (minimum, maximum) in limits.items():
+        if name in value:
+            number = value[name]
+            core.require(type(number) in ((int, float) if name == "max_seconds" else (int,)) and math.isfinite(number) and minimum <= number <= maximum, "Policy budget is outside supported limits")
     return value
 
 
 def operation_report(request):
     result, plan = request["operation"], request["plan"]
     core.require("verified_at" in result and "all_verified" in result, "Verify the operation before generating a final cleanup report")
+    core.require(isinstance(result["all_verified"], bool) and all(type(result[k]) is int for k in ("before_free", "after_free", "observed_free_delta")), "Invalid verification or storage measurements")
     core.require(result["plan_id"] == plan["id"], "Report plan and operation do not match")
     entries = plan.get("entries", plan.get("items", []))
     approved = {e.get("id", e.get("candidate_id")) for e in entries}
@@ -169,13 +177,17 @@ def recommendations(request):
             "changes_made": False, "warning": "Recommendation is not execution authority; native actions require their own exact, reviewed scope"}
 
 
-def enrich_analysis(inventory, request):
-    entries = inventory["entries"]
-    sort_by = request.get("sort_by", "size")
+def sort_entries(entries, sort_by="size"):
     keys = {"size": lambda e: -e["logical_bytes"], "oldest": lambda e: e["identity"]["mtime_ns"],
             "location": lambda e: e["path"], "type": lambda e: Path(e["path"]).suffix.lower(),
             "application": lambda e: e["application"], "recoverability": lambda e: (e["strategy"] != "quarantine-bytecode", e["recovery"])}
     core.require(sort_by in keys, "Unsupported sort order")
+    return sorted(entries, key=keys[sort_by])
+
+
+def enrich_analysis(inventory, request):
+    entries = inventory["entries"]
+    sort_by = request.get("sort_by", "size")
     directories = directory_totals(inventory)
     projects = []
     started = time.monotonic()
@@ -196,7 +208,7 @@ def enrich_analysis(inventory, request):
                            "storage_pressure": "critical" if ratio < .03 else "low-free-space" if ratio < .1 else "normal"})
         except OSError:
             health.append({"root": disk["root"], "storage_pressure": "unknown"})
-    return {"ranked_files": sorted(entries, key=keys[sort_by])[:min(max(int(request.get("top", 20)), 1), 100)],
+    return {"ranked_files": sort_entries(entries, sort_by)[:min(max(int(request.get("top", 20)), 1), 100)],
             "directories": directories[:100], "project_artifacts": projects, "health": health,
             "project_analysis_complete": inspected == len(entries),
             "temporary_candidates": [{"candidate_id": e["id"], "age_seconds": max(0, (time.time_ns() - e["identity"]["mtime_ns"]) / 10**9),
@@ -231,7 +243,8 @@ def leftovers(request):
 
 def trash(request):
     core.require(request.get("authorized") is True, "Trash inspection requires selected scope approval")
-    inventory = core.scan({**request, "protected_metadata_only": True, "scope_review_approved": True})
+    scope, _ = resolve_scope(request)
+    inventory = core.scan({**scope, "protected_metadata_only": True, "scope_review_approved": True})
     # Contents remain recoverable personal data, irrespective of apparent age/type.
     return {"schema_version": 1, "inventory": inventory,
             "logical_bytes": sum(x["logical_bytes"] for x in inventory["entries"] if x["unique_inode"]),
@@ -262,11 +275,7 @@ def snapshots(request):
     return snapshot
 
 
-def audit(request):
-    mode = request.get("mode", "quick")
-    core.require(mode in MODES, "Unknown audit mode")
-    if mode == "compare":
-        return compare(request)
+def resolve_scope(request):
     restrictions = policy(request.get("policy", {}))
     if request.get("profile_id"):
         restrictions = policy(core.Store(request["state_dir"]).load("profile-" + request["profile_id"] + ".json")["policy"])
@@ -280,6 +289,15 @@ def audit(request):
         if key in restrictions:
             scan_request[key] = min(scan_request.get(key, restrictions[key]), restrictions[key])
     scan_request.update(roots=roots, exclude=list(dict.fromkeys(request.get("exclude", []) + restrictions.get("exclude", []))))
+    return scan_request, restrictions
+
+
+def audit(request):
+    mode = request.get("mode", "quick")
+    core.require(mode in MODES, "Unknown audit mode")
+    if mode == "compare":
+        return compare(request)
+    scan_request, restrictions = resolve_scope(request)
     inventory = core.scan(scan_request)
     analysis_request = {"inventory": inventory, "top": request.get("top", 20), "sort_by": request.get("sort_by", "size")}
     if mode == "duplicates" or request.get("duplicates"):

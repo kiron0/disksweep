@@ -9,7 +9,7 @@ BASE = Path(__file__).resolve().parent.parent
 def build(destination):
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    included = {"SKILL.md", "README.md", "LICENSE", "CHANGELOG.md", "SECURITY.md"}
+    included = {"SKILL.md", "README.md", "COMMANDS.md", "LICENSE", "CHANGELOG.md", "SECURITY.md"}
     folders = {"agents", "references", "scripts", "rules", "schemas", "assets", "docs"}
     with zipfile.ZipFile(destination, "x", compression=zipfile.ZIP_DEFLATED) as archive:
         for path in sorted(BASE.rglob("*")):

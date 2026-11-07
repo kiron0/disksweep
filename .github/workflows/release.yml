@@ -8,7 +8,7 @@ on:
         description: Existing stable version tag to publish or retry
         required: true
         type: string
-        default: v0.1.0
+        default: v0.1.1
 permissions:
   contents: read
 jobs:
@@ -47,13 +47,21 @@ jobs:
           python scripts/package_skill.py "dist/swipr-${SWIPR_RELEASE_TAG}.skill"
           cd dist
           sha256sum "swipr-${SWIPR_RELEASE_TAG}.skill" > SHA256SUMS
+      - name: Prepare release notes
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          notes = Path('assets/release-notes.md').read_text().replace('{{TAG}}', os.environ['SWIPR_RELEASE_TAG'])
+          Path('dist/release-notes.md').write_text(notes)
+          PY
       - name: Publish the stable release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$SWIPR_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$SWIPR_RELEASE_TAG" "dist/swipr-${SWIPR_RELEASE_TAG}.skill" dist/SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber
-            gh release edit "$SWIPR_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --title "Swipr ${SWIPR_RELEASE_TAG}" --notes-file assets/release-notes.md --draft=false --prerelease=false --latest
+            gh release edit "$SWIPR_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --title "$SWIPR_RELEASE_TAG" --notes-file dist/release-notes.md --draft=false --prerelease=false --latest
           else
-            gh release create "$SWIPR_RELEASE_TAG" "dist/swipr-${SWIPR_RELEASE_TAG}.skill" dist/SHA256SUMS --repo "$GITHUB_REPOSITORY" --title "Swipr ${SWIPR_RELEASE_TAG}" --notes-file assets/release-notes.md --verify-tag --latest
+            gh release create "$SWIPR_RELEASE_TAG" "dist/swipr-${SWIPR_RELEASE_TAG}.skill" dist/SHA256SUMS --repo "$GITHUB_REPOSITORY" --title "$SWIPR_RELEASE_TAG" --notes-file dist/release-notes.md --verify-tag --latest
           fi

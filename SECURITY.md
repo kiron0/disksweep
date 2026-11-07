@@ -1,6 +1,6 @@
 # Security
 
-Swipr 0.1.0 supports local audits, restricted bytecode quarantine, and a separate
+Swipr supports local audits, restricted bytecode quarantine, and a separate
 permanent-removal protocol for exact verified private bytecode quarantine. An
 independent security audit has not been performed.
 Read references/safety-policy.md and references/recovery.md before enabling execution.

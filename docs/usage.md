@@ -121,3 +121,10 @@ All ten modes and their implementations are listed in [feature coverage](feature
 Saving a policy or inventory snapshot needs consent; stored preferences never approve
 future file changes. Protected backups and application state can be inspected in an
 explicit metadata-only scope, and remain ineligible for cleanup.
+
+## Prefer commands?
+
+Use the [complete command reference](../COMMANDS.md) for agent invocation, terminal
+commands, every subcommand, options, approval steps, and export formats. Start with
+`$swipr help` in Codex or `/swipr help` in Claude Code. For deeper workflows, see
+[advanced recipes](advanced.md). For directory visibility, see [skills.sh listing](publishing.md).

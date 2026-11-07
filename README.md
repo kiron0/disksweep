@@ -1,6 +1,6 @@
 # Swipr
 
-Audit local storage and plan safe cleanup with your AI agent.
+Local storage audits and safe cleanup, through your AI agent.
 
 ## Install
 
@@ -8,27 +8,50 @@ Audit local storage and plan safe cleanup with your AI agent.
 npx skills add kiron0/swipr --skill swipr
 ```
 
-Requires Python 3.10+ and an agent with local filesystem access.
-Storage audits support macOS, Windows, and Linux.
+Use Node.js 22.20+ for the installer, Python 3.10+ for helpers, and an agent with
+local filesystem access. Audits support macOS, Windows, and Linux.
 
-## Usage
+## Start using it
 
-Ask your agent:
+In **Codex chat**:
 
-> Use Swipr to check my storage and show cleanup opportunities. Don't change any files.
+```text
+$swipr help
+$swipr scan quick --root ~/Downloads
+$swipr find large --root ~/Downloads --min-bytes 104857600
+$swipr scan developer --root ~/Projects/my-app
+```
 
-> Find large files in Downloads. Ask before reading contents to check for duplicates.
+In **Claude Code**, use `/swipr` instead of `$swipr`. Other agents can use
+`Use Swipr: help`. Replace the example folders with your authorized scope.
 
-> Review my developer caches. Preserve projects, dependencies, databases, and browser sessions.
+## Commands
 
-Swipr scans the folders you choose, explains its findings, and presents a plan.
-Every supported file move requires your approval of the exact plan.
+| Group | Subcommands |
+|---|---|
+| `help`, `doctor` | Help and capability checks |
+| `scan` | `quick`, `deep`, `developer`, `emergency`, `targeted`, `health`, `safe-cleanup`, `custom` |
+| `find` | `large`, `directories`, `duplicates` |
+| `inspect` | `apps`, `storage`, `docker`, `activity`, `leftovers`, `trash`, `recycle-bin` |
+| `plan` | `create`, `purge`, `show`, `validate` |
+| `approve` | `quarantine`, `purge` |
+| `clean` | `quarantine`, `restore`, `purge` |
+| `verify`, `report` | Verify results; export audit or operation reports |
+| `history` | `save`, `show`, `compare`, `operations` |
+| `profile`, `catalog` | Restrictive preferences and detection rules |
 
-## Cleanup support
+[Full commands, options and examples](COMMANDS.md) · [Advanced recipes](docs/advanced.md)
 
-Eligible Python bytecode can be quarantined on macOS and Linux. Quarantine retains
-files and frees no space. Clearing that quarantine permanently requires a separate
-approval. Other categories use audit findings and native cleanup guidance.
+For terminal use from a clone:
 
-[Usage guide](docs/usage.md) · [Platform support](docs/implementation-status.md) ·
-[Releases](https://github.com/kiron0/swipr/releases) · [Security](SECURITY.md) · [MIT license](LICENSE)
+```sh
+python scripts/swipr.py help
+python scripts/swipr.py scan quick --root "/path/to/folder" --output audit.json
+```
+
+Scans never approve cleanup. File changes require an exact reviewed plan and fresh
+approval. Quarantine retains bytecode; permanent removal requires separate irreversible
+approval. Other categories use native cleanup guidance. See [platform support](docs/implementation-status.md).
+
+[Usage](docs/usage.md) · [skills.sh listing steps](docs/publishing.md) ·
+[Releases](https://github.com/kiron0/swipr/releases) · [Security](SECURITY.md) · [MIT](LICENSE)

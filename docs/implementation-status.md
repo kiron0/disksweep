@@ -1,4 +1,4 @@
-# Supported features — 0.1.0
+# Supported features
 
 All seven phases are provided: discover, analyze, classify, recommend, approve,
 execute, and verify. The [feature coverage](feature-coverage.md) maps the original

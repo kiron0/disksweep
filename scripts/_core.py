@@ -27,7 +27,7 @@ import subprocess
 import time
 from collections import defaultdict
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 BASE = Path(__file__).resolve().parent.parent
 KINDS = {"SAFE-CANDIDATE", "REVIEW", "PROTECTED", "UNSUPPORTED"}
 PRUNE = {".git", ".svn", ".hg", ".ssh", ".aws", ".gnupg", ".azure",
@@ -265,6 +265,8 @@ def scan(request):
                         count += 1
                         path = directory / item.name
                         try:
+                            if any(inside(path, Path(x)) for x in exclusions):
+                                issues.append({"path": str(path), "reason": "protected"}); continue
                             # Windows DirEntry.stat caches zero device/inode/link IDs.
                             # lstat() retrieves the complete filesystem identity there.
                             s = path.lstat() if platform_id() == "windows" else item.stat(follow_symlinks=False)

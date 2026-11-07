@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1 — 2026-11-07
+
+- Add documented commands and subcommands for every workflow through one optional
+  adapter, including help, discovery, scans, filtered file discovery, native inspection,
+  exact plans, approval, cleanup, verification, reports, history, profiles, and rules.
+- Add complete command examples and an advanced usage cookbook.
+- Preserve explicit scope and approval gates; reserve private output files before
+  operations, refuse overwrites, and bound JSON input.
+- Use version-only release titles and document skills.sh listing steps.
+
 ## 0.1.0 — 2026-11-07
 
 First published stable release.

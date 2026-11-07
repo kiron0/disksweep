@@ -5,7 +5,9 @@ boundaries. Use synthetic paths and redacted metadata. Do not submit personal in
 
 Runtime must remain offline and standard-library-only (Python 3.10+). Helpers accept
 one JSON object on stdin and emit an envelope on stdout. Do not add a standalone
-interactive CLI, telemetry, arbitrary shell execution, or a background service.
+standalone installed product, telemetry, arbitrary shell execution, or a background
+service. The optional noninteractive command adapter delegates to these same helpers;
+it must preserve every scope, policy, approval, revalidation, and journaling gate.
 
 ## Development
 
