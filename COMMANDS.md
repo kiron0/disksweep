@@ -239,4 +239,4 @@ Input is bounded JSON; redirects and nonregular inputs are refused. Saved files 
 owner-only permissions where supported. An error never authorizes an automatic retry.
 
 [Advanced recipes](docs/advanced.md) · [Platform support](docs/implementation-status.md) ·
-[skills.sh listing](docs/publishing.md) · [Internal JSON protocol](references/helper-protocol.md)
+[Internal JSON protocol](references/helper-protocol.md)

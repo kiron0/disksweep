@@ -54,7 +54,7 @@ class IntegrationTests(Fixture):
             self.assertIn("swipr/SECURITY.md", names)
             self.assertIn("swipr/COMMANDS.md", names)
             self.assertIn("swipr/scripts/swipr.py", names)
-            self.assertIn("swipr/docs/usage.md", names)
+            self.assertIn("swipr/docs/advanced.md", names)
             self.assertIn("swipr/scripts/_core.py", names)
             self.assertIn("swipr/rules/developer/catalog.json", names)
             self.assertFalse(any("__pycache__" in n or "/.git/" in n or "/tests/" in n for n in names))
