@@ -165,7 +165,7 @@ def parser():
 
     cleans = group("clean", "Execute only an existing exact approval, or restore without overwriting")
     for name in ("quarantine", "purge", "restore", "remove"):
-        p = leaf(cleans, name, "clean", name.capitalize() + " exact approved bytecode artifacts")
+        p = leaf(cleans, name, "clean", "Permanently delete exact checked Windows files; cannot undo" if name == 'remove' else name.capitalize() + " exact approved bytecode artifacts")
         if name == 'remove':
             add_state(p)
             p.add_argument('--input', required=True, metavar='PLAN_OR_FULL_AUDIT_JSON')
@@ -177,7 +177,7 @@ def parser():
         else:
             add_plan(p); p.add_argument("--approval-id", required=True)
 
-    p = leaf(commands, "verify", "verify", "Verify a completed quarantine or purge operation")
+    p = leaf(commands, "verify", "verify", "Verify a completed quarantine, purge, or Windows removal operation")
     add_operation(p); p.add_argument("--kind", choices=("quarantine", "purge", "remove"), default="quarantine")
 
     reports = group("report", "Produce an audit or verified cleanup report")
