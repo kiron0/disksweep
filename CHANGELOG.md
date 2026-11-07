@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Refresh the README with a local SVG cover, task-based commands, a platform
+  matrix, and expandable terminal instructions; organize the evaluation guide.
 - Add guided `start` workflows without implicit scans or permissions.
 - Add `explain` for exact saved findings, with optional private evidence.
 - Give scoped audits contextual review steps, partial-coverage warnings and
