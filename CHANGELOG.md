@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.1 — 2026-11-07
+
+- Publish the first stable release of the currently supported audit and limited
+  bytecode-quarantine features.
+- Simplify the README to installation, usage, and cleanup support.
+- Add a practical usage guide for audits, approval, verification, and restoration.
+- Include the linked security documentation in the installable skill archive.
+- Correct capability discovery so content hashing is advertised only when safe
+  POSIX directory handles are available.
+
+Windows supports metadata audits. Quarantine and content hashing require POSIX;
+permanent deletion and automatic native maintenance remain unavailable.
+
 ## 0.4.0 preview — 2026-11-07
 
 - Add a portable Agent Skills entry point and progressive reference documentation.

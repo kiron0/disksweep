@@ -7,6 +7,20 @@ Runtime must remain offline and standard-library-only (Python 3.10+). Helpers ac
 one JSON object on stdin and emit an envelope on stdout. Do not add a standalone
 interactive CLI, telemetry, arbitrary shell execution, or a background service.
 
+## Development
+
+Install the development-only validators, then run the checks:
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m unittest discover -s tests -v
+.venv/bin/python scripts/check_project.py --strict
+```
+
+On Windows use `.venv\Scripts\python.exe`. Build a local skill archive with
+`python3 scripts/package_skill.py dist/disksweep.skill`.
+
 ## Rule release gate
 
 Every rule must document its supported OS/tool versions, validated location and

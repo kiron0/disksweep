@@ -1,8 +1,8 @@
-# Implementation status — 0.4.0 preview
+# Supported features — 0.4.1
 
-The project brief describes a staged roadmap through v1.0. This initial implementation
-combines the audit/planning foundation with one narrowly scoped quarantine strategy.
-It is not a stable v1.0 or a claim of mature cross-platform destructive cleanup.
+Version 0.4.1 is the stable release of the features below: local storage audits,
+cleanup proposals, and a narrowly scoped POSIX bytecode-quarantine workflow.
+The broader v1.0 roadmap remains separate from this release's supported scope.
 
 | Capability | Linux | macOS | Windows |
 |---|---|---|---|
@@ -19,9 +19,10 @@ It is not a stable v1.0 or a claim of mature cross-platform destructive cleanup.
 
 ## Validation boundaries
 
-Local development runs use Linux and temporary filesystem fixtures. GitHub Actions
-contains Linux/macOS/Windows and Python 3.10/3.12 matrix jobs; a configured matrix is
-not proof that remote runs passed. See the Actions page for current evidence.
+Tests use temporary filesystem fixtures. GitHub Actions runs Linux, macOS, and
+Windows jobs with Python 3.10 and 3.12. All six platform/version jobs passed for
+the preceding implementation; each release commit must pass the same matrix.
+See the [Actions page](https://github.com/kiron0/disksweep/actions) for current results.
 No real browser profile, Docker daemon, APFS snapshot, Windows servicing store,
 Intel/Apple Silicon release matrix, or user home is modified by tests.
 

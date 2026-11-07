@@ -51,6 +51,8 @@ class IntegrationTests(Fixture):
         with zipfile.ZipFile(a) as archive:
             names = archive.namelist()
             self.assertIn("disksweep/SKILL.md", names)
+            self.assertIn("disksweep/SECURITY.md", names)
+            self.assertIn("disksweep/docs/usage.md", names)
             self.assertIn("disksweep/scripts/_core.py", names)
             self.assertIn("disksweep/rules/developer/catalog.json", names)
             self.assertFalse(any("__pycache__" in n or "/.git/" in n or "/tests/" in n for n in names))

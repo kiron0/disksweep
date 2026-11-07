@@ -23,7 +23,7 @@ import subprocess
 import time
 from collections import defaultdict
 
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 BASE = Path(__file__).resolve().parent.parent
 KINDS = {"SAFE-CANDIDATE", "REVIEW", "PROTECTED", "UNSUPPORTED"}
 PRUNE = {".git", ".svn", ".hg", ".ssh", ".aws", ".gnupg", ".azure",
@@ -204,7 +204,8 @@ def probe(request):
             "home": str(home), "disk": {"total": usage.total, "used": usage.used, "free": usage.free},
             "mounts": mounts, "tools": tools,
             "suggested_roots": [str(x) for x in roots.get(pid, []) if x.is_dir()],
-            "capabilities": {"metadata": True, "content_hashing": True,
+            "capabilities": {"metadata": True,
+                             "content_hashing": os.name == "posix" and os.open in os.supports_dir_fd,
                              "quarantine": os.name == "posix" and os.open in os.supports_dir_fd,
                              "permanent_delete": False, "active_use_detection": False,
                              "native_maintenance": "agent-guided; no automatic execution"},

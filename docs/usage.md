@@ -1,0 +1,101 @@
+# Using DiskSweep
+
+## Installation
+
+Install with the Skills CLI:
+
+```sh
+npx skills add kiron0/disksweep --skill disksweep
+```
+
+Alternatively, clone this repository into your agent's skill directory as
+`disksweep/`. Common locations are `~/.agents/skills/disksweep/` for Codex and
+`~/.claude/skills/disksweep/` for Claude Code. Follow your agent's installation
+instructions if it uses a different location.
+
+You need Python 3.10+ and permission for the agent to inspect local files.
+DiskSweep's helpers run locally without accounts, telemetry, or runtime packages.
+The hosting agent and installer have their own privacy settings.
+
+## Start with an audit
+
+> Use DiskSweep to audit my storage. Start with known caches and show a report without changing files.
+
+Your agent proposes folders to inspect. Choose the scope and name anything to
+exclude, such as cloud folders, backups, work projects, or offline dependencies.
+Scans are bounded; the report identifies skipped or inaccessible locations.
+
+The report explains file sizes, known cache associations, risks, side effects,
+and possible next steps. Candidate sizes are estimates, not guaranteed savings.
+
+## Common requests
+
+**Large files**
+
+> Show the largest files in Downloads. Keep everything in place.
+
+**Exact duplicates**
+
+> Check Downloads for exact duplicates. Ask me before reading file contents, and keep all copies.
+
+Duplicate checks need separate content-reading approval. Safe hashing is available
+on macOS and Linux; Windows currently supports metadata audits only.
+
+**Developer storage**
+
+> Review Python, Node.js, Rust, and Xcode caches. Preserve sources, dependencies, configurations, and anything I need offline.
+
+**Browser storage**
+
+> Inspect browser resource caches. Preserve passwords, sessions, bookmarks, and offline website data.
+
+Browser findings lead to the browser's own cache controls. DiskSweep does not
+delete browser profiles or automate browser cleanup.
+
+**Docker storage**
+
+> Review storage in my local Docker context. Keep every volume and database.
+
+Your agent confirms the Docker context before optional read-only queries.
+DiskSweep does not prune Docker resources.
+
+## Approve a supported move
+
+On macOS and Linux, eligible stale Python bytecode can be moved to a private
+quarantine. Your source files remain in place. The agent shows each exact file,
+its size, expected effects, recovery option, and the plan's expiration.
+
+Approve only after reviewing that plan and stopping the generating Python workload:
+
+> I approve the displayed quarantine plan. My Python workload is stopped.
+
+Plans expire after 15 minutes. Approval receipts last at most five minutes and
+can be used once. Changed files require a new plan and approval.
+
+**Quarantine retains the files and frees no disk space.** Permanent deletion,
+Trash emptying, and automatic browser, package, or OS maintenance are unavailable.
+For immediate space recovery, ask the agent to explain suitable native storage controls.
+
+## Verify or restore
+
+> Verify the approved operation and show what changed.
+
+The agent checks each result and reports successful, failed, and unattempted
+items, plus observed free-space changes. Unrelated system activity can affect
+those measurements.
+
+> Restore the bytecode from the completed quarantine operation.
+
+Restoration requires your approval, skips existing originals, and retains a
+quarantine hard link. Both names then refer to the same underlying file. If an
+operation was interrupted, ask the agent to inspect its journal before any retry.
+
+## Save or share a report
+
+> Save a redacted storage report without filenames, usernames, or local paths.
+
+Reports are redacted by default. Saving a report requires your consent;
+unredacted inventories and operation journals should stay private.
+
+See [platform support](implementation-status.md) for capability details and
+[recovery](../references/recovery.md) for interrupted-operation handling.

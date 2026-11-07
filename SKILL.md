@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires a local agent with filesystem tools and Python 3.10 or later. Metadata audits support macOS, Windows, and Linux. Secure duplicate hashing and controlled bytecode quarantine require POSIX directory handles; Windows execution is disabled.
 metadata:
   author: kiron0
-  version: "0.4.0"
+  version: "0.4.1"
 ---
 
 # DiskSweep

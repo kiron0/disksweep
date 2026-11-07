@@ -288,6 +288,13 @@ class ExecutionTests(Fixture):
 
 
 class ProtocolTests(Fixture):
+    def test_probe_does_not_advertise_hashing_without_safe_handles(self):
+        with patch.object(Path, "home", return_value=self.root), patch.object(core.os, "supports_dir_fd", set()):
+            result = core.probe({"path": str(self.root)})
+        self.assertTrue(result["capabilities"]["metadata"])
+        self.assertFalse(result["capabilities"]["content_hashing"])
+        self.assertFalse(result["capabilities"]["quarantine"])
+
     def test_json_helper_roundtrip(self):
         script = core.BASE / "scripts/inventory.py"
         result = subprocess.run([sys.executable, str(script)], input=json.dumps({"roots": [str(self.root)]}), text=True, capture_output=True, check=True)

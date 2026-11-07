@@ -1,7 +1,7 @@
 # Security
 
-DiskSweep is a preview and has not had an independent security audit. No permanent
-deletion is implemented. The only move strategy is restricted bytecode quarantine.
+DiskSweep 0.4.1 supports local audits and restricted bytecode quarantine. No permanent
+deletion is implemented. An independent security audit has not been performed.
 Read references/safety-policy.md and references/recovery.md before enabling execution.
 
 ## Threat model
@@ -32,5 +32,5 @@ reporting is unavailable, open a minimal issue requesting a private contact meth
 without exploit details, credentials, local paths, or inventories. Do not post sensitive
 proof-of-concept data publicly. No response-time guarantee is currently offered.
 
-Supported fixes target the latest preview branch. Review changes before updating an
+Supported fixes target the latest 0.4.x release. Review changes before updating an
 installed skill, and discard old plans whenever code or policy changes.
