@@ -159,8 +159,7 @@ class NativeFeatures(Fixture):
 
     def test_application_absence_only_produces_review(self):
         p = self.root / ".cache/pip"; p.mkdir(parents=True); (p / "wheel").write_text("cache")
-        with patch.object(core, "platform_id", return_value="linux"):
-            inventory = self.inventory()
+        inventory = self.inventory()
         result = audit.leftovers({"inventory": inventory, "applications": {"source": "native-installed-applications", "applications": [], "complete": False}})
         self.assertTrue(result["associations"])
         self.assertTrue(all(x["classification"] == "REVIEW" and not x["automatic_removal"] for x in result["associations"]))
