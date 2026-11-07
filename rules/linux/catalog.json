@@ -24,5 +24,59 @@
     ],
     "supported_versions": "Path-signature metadata audit; validate native tool version separately",
     "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "linux-package-downloads",
+    "version": 1,
+    "category": "package-cache",
+    "application": "Linux package manager",
+    "platforms": [
+      "linux"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      "var/cache/apt/archives",
+      "var/cache/dnf",
+      "var/cache/pacman/pkg"
+    ],
+    "reason": "Distribution-managed package cache; use only native package maintenance after review",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "linux-journal",
+    "version": 1,
+    "category": "diagnostics",
+    "application": "systemd journal",
+    "platforms": [
+      "linux"
+    ],
+    "risk": "high",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      "var/log/journal"
+    ],
+    "reason": "System-managed diagnostic journal; preserve audit/incident retention and use native retention facilities",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
   }
 ]

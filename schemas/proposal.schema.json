@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kiron0/disksweep/schemas/proposal.schema.json",
+  "title": "DiskSweep proposal",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "inventory_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "candidate_id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "application": {
+            "type": "string"
+          },
+          "classification": {
+            "enum": [
+              "REVIEW",
+              "SAFE-CANDIDATE",
+              "PROTECTED",
+              "UNSUPPORTED"
+            ]
+          },
+          "logical_bytes": {
+            "type": "integer"
+          },
+          "allocated_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "potential_reclaimable_upper_bound": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "estimated_immediate_free_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "mechanism": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "side_effects": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "string"
+          },
+          "authorization": {
+            "const": "not-approved"
+          }
+        },
+        "required": [
+          "candidate_id",
+          "path",
+          "category",
+          "application",
+          "classification",
+          "logical_bytes",
+          "allocated_bytes",
+          "potential_reclaimable_upper_bound",
+          "estimated_immediate_free_bytes",
+          "mechanism",
+          "evidence",
+          "reason",
+          "side_effects",
+          "recovery",
+          "authorization"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "project_analysis_complete": {
+      "type": "boolean"
+    },
+    "changes_made": {
+      "const": false
+    },
+    "warning": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "inventory_digest",
+    "candidates",
+    "project_analysis_complete",
+    "changes_made",
+    "warning"
+  ],
+  "additionalProperties": false
+}

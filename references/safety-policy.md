@@ -53,5 +53,7 @@ it attempts to restore the original name with a non-overwriting hard link and re
 the quarantine object. Inspect both locations before proceeding. Workload quiescence
 is mandatory; hostile concurrent writers require a snapshot or no execution.
 
-No file unlink, recursive deletion, quarantine purge, forced shutdown, elevation,
-Docker volume mutation, registry change, or arbitrary shell command exists.
+Only purge_execute.py can permanently remove exact verified private bytecode quarantine,
+using a separate signed irreversible approval. Arbitrary file deletion, recursive
+directory deletion, forced shutdown, elevation, Docker volume mutation, registry
+changes and arbitrary shell execution are excluded.

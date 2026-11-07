@@ -1,7 +1,8 @@
 # Security
 
-DiskSweep 0.4.1 supports local audits and restricted bytecode quarantine. No permanent
-deletion is implemented. An independent security audit has not been performed.
+DiskSweep 0.1.0 supports local audits, restricted bytecode quarantine, and a separate
+permanent-removal protocol for exact verified private bytecode quarantine. An
+independent security audit has not been performed.
 Read references/safety-policy.md and references/recovery.md before enabling execution.
 
 ## Threat model
@@ -20,7 +21,8 @@ checks; concurrent final-name replacement triggers stop and best-effort non-over
 name restoration. Quiescent workloads are required. No guarantees apply to hostile
 concurrent writers; use a read-only audit or an externally managed snapshot instead.
 
-Windows execution and content hashing are disabled pending native safety support.
+Windows direct execution and content hashing are unavailable in the current backend;
+native user-guided maintenance remains available.
 OS/path detection cannot discover every custom cloud, backup, or network location.
 Use explicit exclusions. Reports and Docker metadata can contain private information.
 
@@ -32,5 +34,13 @@ reporting is unavailable, open a minimal issue requesting a private contact meth
 without exploit details, credentials, local paths, or inventories. Do not post sensitive
 proof-of-concept data publicly. No response-time guarantee is currently offered.
 
-Supported fixes target the latest 0.4.x release. Review changes before updating an
+Supported fixes target the latest 0.1.x release. Review changes before updating an
 installed skill, and discard old plans whenever code or policy changes.
+
+Permanent removal has a distinct signed plan and short-lived one-use approval,
+requires explicit irreversible acknowledgement, and validates each current-user,
+single-link bytecode object inside its derived private quarantine directory. It
+cannot target original files or arbitrary paths. The sole unlink call is guarded
+by identity, ownership, type, magic, directory-handle and approval checks. Private
+state and quiescent workloads are trusted; hostile same-user mutation remains outside
+the boundary. A failed or interrupted purge must be reconciled, never blindly replayed.

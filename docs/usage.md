@@ -72,9 +72,14 @@ Approve only after reviewing that plan and stopping the generating Python worklo
 Plans expire after 15 minutes. Approval receipts last at most five minutes and
 can be used once. Changed files require a new plan and approval.
 
-**Quarantine retains the files and frees no disk space.** Permanent deletion,
-Trash emptying, and automatic browser, package, or OS maintenance are unavailable.
-For immediate space recovery, ask the agent to explain suitable native storage controls.
+**Quarantine retains files and frees no disk space.** To recover its allocation,
+ask the agent to prepare a separate permanent-removal plan for exact quarantined
+bytecode IDs. Review it and explicitly acknowledge that removal cannot be undone.
+The earlier quarantine approval cannot authorize permanent removal. Files that
+changed, gained hard links, or were restored are rejected.
+
+Trash emptying and browser, package, Docker, or OS maintenance use native user-guided
+controls with their own scope review. They are not covered by bytecode approval.
 
 ## Verify or restore
 
@@ -99,3 +104,20 @@ unredacted inventories and operation journals should stay private.
 
 See [platform support](implementation-status.md) for capability details and
 [recovery](../references/recovery.md) for interrupted-operation handling.
+
+## More workflows
+
+> Run a deep audit with directory-size distribution and native storage information. Ask before expanding scope.
+
+> Check for possible application leftovers using the installed-app inventory. Preserve settings and support data.
+
+> Inspect my Trash usage and retention options without emptying it.
+
+> Compare this audit with the previous snapshot and show storage growth or regenerated caches.
+
+> Use a custom policy: scan only this project, exclude cloud folders, preserve offline caches, and never permanently delete files.
+
+All ten modes and their implementations are listed in [feature coverage](feature-coverage.md).
+Saving a policy or inventory snapshot needs consent; stored preferences never approve
+future file changes. Protected backups and application state can be inspected in an
+explicit metadata-only scope, and remain ineligible for cleanup.

@@ -20,7 +20,17 @@
       "Microsoft/Edge/User Data/Default/Cache",
       "BraveSoftware/Brave-Browser/User Data/Default/Cache",
       "Library/Caches/Google/Chrome/Default/Cache",
-      "Library/Caches/Microsoft Edge/Default/Cache"
+      "Library/Caches/Microsoft Edge/Default/Cache",
+      ".cache/google-chrome/Profile */Cache",
+      ".cache/chromium/Profile */Cache",
+      ".cache/Microsoft/Edge/Default/Cache",
+      ".cache/microsoft-edge/Default/Cache",
+      ".cache/BraveSoftware/Brave-Browser/Profile */Cache",
+      "Google/Chrome/User Data/Profile */Cache",
+      "Microsoft/Edge/User Data/Profile */Cache",
+      "BraveSoftware/Brave-Browser/User Data/Profile */Cache",
+      "Library/Caches/Google/Chrome/Profile */Cache",
+      "Library/Caches/Microsoft Edge/Profile */Cache"
     ],
     "reason": "Exact default-profile resource-cache path; other profiles require browser-native inspection",
     "side_effects": "Use browser cache-only controls; preserve cookies, passwords, offline state and sessions",
@@ -49,7 +59,8 @@
     "strategy": "audit-only",
     "signatures": [
       ".cache/mozilla/firefox",
-      "Library/Caches/Firefox/Profiles"
+      "Library/Caches/Firefox/Profiles",
+      "AppData/Local/Mozilla/Firefox/Profiles/*/cache2"
     ],
     "reason": "Firefox cache root; enumerate using browser tools before choosing data types",
     "side_effects": "Cache-only browser UI; never delete a profile or offline site storage",

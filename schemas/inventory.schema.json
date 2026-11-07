@@ -159,6 +159,12 @@
           },
           "active_use": {
             "const": "unknown"
+          },
+          "created_ns": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
@@ -342,6 +348,9 @@
     },
     "changes_made": {
       "const": false
+    },
+    "protected_metadata_only": {
+      "type": "boolean"
     }
   },
   "required": [

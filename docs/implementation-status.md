@@ -1,44 +1,36 @@
-# Supported features — 0.4.1
+# Supported features — 0.1.0
 
-Version 0.4.1 is the stable release of the features below: local storage audits,
-cleanup proposals, and a narrowly scoped POSIX bytecode-quarantine workflow.
-The broader v1.0 roadmap remains separate from this release's supported scope.
+All seven phases are provided: discover, analyze, classify, recommend, approve,
+execute, and verify. The [feature coverage](feature-coverage.md) maps the original
+brief to helpers, references, and tests. Platform capabilities determine which
+operations the agent can perform locally.
 
-| Capability | Linux | macOS | Windows |
-|---|---|---|---|
-| OS/tool/free-space discovery | Implemented | Implemented | Implemented |
-| Bounded metadata inventory and audit rules | Implemented | Implemented | Implemented, best-effort traversal races |
-| Large-file reporting and redacted reports | Implemented | Implemented | Implemented |
-| Approved SHA-256 duplicate audit | POSIX handles | POSIX handles | Disabled |
-| Signed plans, approval, validation | Implemented | Implemented | Disabled pending ACL support |
-| Stale source-backed bytecode quarantine | POSIX only | POSIX only | Disabled |
-| Non-overwriting restore, verification | Implemented | Implemented | Disabled |
-| Docker metadata | Optional native interface | Optional native interface | Optional native interface |
-| Browser/package/OS maintenance | Native guidance | Native guidance | Native guidance |
-| Permanent deletion, Trash emptying | Disabled | Disabled | Disabled |
+| Feature | macOS / Linux | Windows |
+|---|---|---|
+| Bounded metadata audits, sizes, large files, risk classification | Automated | Automated |
+| Ten modes, project-artifact detection, comparisons and health findings | Automated | Automated |
+| Installed-app associations and potential leftovers | Authorized native inventory | Authorized native inventory |
+| Trash / Recycle Bin usage | Explicit protected metadata scope | Native current-user bin query |
+| Filesystem, logs, snapshots and volume discovery | Authorized native queries | Authorized native queries |
+| Duplicate hashing | Approved safe-handle hashing | Metadata only; content hashing unavailable |
+| Persistent signed policies and snapshots | Private local state | Session policies; persistent helper unavailable |
+| Bytecode quarantine, restoration, signed approval and journaling | Automated after exact approval | Native user-guided cleanup |
+| Permanent removal of verified private bytecode quarantine | Separate irreversible approval | Native user-guided cleanup |
+| Browser, package, Docker and system maintenance | Native user-guided cleanup | Native user-guided cleanup |
 
-## Validation boundaries
+## What the checks establish
 
-Tests use temporary filesystem fixtures. GitHub Actions runs Linux, macOS, and
-Windows jobs with Python 3.10 and 3.12. All six platform/version jobs passed for
-the preceding implementation; each release commit must pass the same matrix.
-See the [Actions page](https://github.com/kiron0/disksweep/actions) for current results.
-No real browser profile, Docker daemon, APFS snapshot, Windows servicing store,
-Intel/Apple Silicon release matrix, or user home is modified by tests.
+Fixture tests cover rule matching, all modes, proposals, comparison, policies,
+private snapshots, native-output handling, protected Trash, approval, revalidation,
+quarantine, restoration, permanent-removal boundaries, and failure handling.
+CI runs Python 3.10 and 3.12 on Linux, macOS and Windows. The Actions page records
+results for each commit; Windows skips tests for unavailable POSIX mutation APIs.
 
-Agent Skills metadata and installation layout are validated. Codex, Claude Code,
-Cursor and Gemini CLI are potential hosts, not individually certified integrations.
-Behavioral eval prompts are included but require human or host-agent evaluation;
-static evaluation files are not evidence of live agent compliance. skills.sh discovery
-compatibility is targeted; a registry listing is not guaranteed by this repository.
+Native tools are queried only with scope approval. Missing tools, version differences,
+permissions, or unavailable interfaces produce explicit partial/unsupported results.
+Tests use synthetic filesystem and native-output fixtures, not every application
+version or real user profile. There is no claim of independent security review,
+individual host-agent certification, or precise clone/snapshot-aware physical savings.
 
-## Remaining roadmap
-
-- Native Windows ACL/handle safety and junction race tests.
-- Verified native cleanup rules with fixed inventories and explicit irreversible approval.
-- Reliable active-use checks, comprehensive profile discovery and installed-app association.
-- OS-native Trash inventory, filesystem clone/snapshot accounting, orphan-app evidence.
-- More ecosystems and native tool-version fixtures; live host-agent behavior evaluation.
-- Independent security review and broad native platform testing before stable v1.0.
-
-No release date or compatibility claim should be inferred from these planned items.
+The original document's v0.1–v1.0 milestones describe development stages, not the
+release numbering. This project's first published stable version is 0.1.0.

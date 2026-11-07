@@ -4,7 +4,10 @@ Quarantine is a same-filesystem rename, not Trash and not a backup. It retains a
 allocated data, so its expected immediate reclamation is zero. The store must be
 outside every scan root, on the candidate's filesystem, and private to the user.
 No space-consuming copy fallback or automatic retention expiration exists. Retain
-quarantine until the user resolves it; permanent purge is unsupported in this release.
+quarantine until the user resolves it. A separate irreversible purge plan may remove
+exact, unchanged, single-link private bytecode quarantine after fresh approval.
+Purged files cannot be recovered from quarantine; journal writes and snapshots can
+limit the observed free-space change.
 
 Before moving anything, `execute.py` writes signed `operation-<id>.json` containing
 intent and every pending member. Each attempted item gets a signed `item-<id>.json`.

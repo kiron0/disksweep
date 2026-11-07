@@ -21,5 +21,8 @@ offline”; “Inspect only Downloads and show large files”; “Keep diagnosti
 debug this crash.” Custom roots with unusual names must be explicitly excluded where
 appropriate; cloud/backup recognition is conservative but incomplete.
 
-Incremental history, orphan-app proof, snapshot-aware physical savings, native Trash
-accounting, and automatic expired-quarantine cleanup are future work. Never invent results.
+Use compare.py and snapshots.py for consented history, applications.py / leftovers.py
+for possible residual associations, and trash_audit.py / recycle_bin.py for recoverable
+storage accounting. native_storage.py inspects snapshots and filesystems where supported.
+Physical clone/snapshot savings and proof of orphan status remain unknown. There is
+no automatic quarantine expiration or deletion.

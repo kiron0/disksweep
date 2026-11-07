@@ -13,5 +13,6 @@ Rule confidence never overrides protection. The detector associates paths with t
 it does not claim that a cache's generating application is installed merely because
 the path exists. Tool executable presence is reported independently by the probe.
 
-Directory-level orphan detection, filesystem clone detection, and reliable active-file
-inspection are not implemented. Do not infer these from age, names, or process listings.
+Use applications.py and leftovers.py for possible residual associations, and activity.py
+for observed open handles where available. Missing applications or unobserved handles
+never prove disposability. Clone/snapshot physical savings remain unknown.

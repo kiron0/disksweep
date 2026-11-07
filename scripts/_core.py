@@ -1,7 +1,8 @@
 """DiskSweep's offline, standard-library-only filesystem and policy engine.
 
-Only quarantine of source-backed Python bytecode is enabled. All other rules
-are informational. No helper unlinks user files or empties quarantine.
+Source-backed bytecode can be quarantined, then permanently removed through a
+separate approval protocol. Other rules are informational; arbitrary deletion
+and automatic Trash emptying are excluded.
 """
 from __future__ import annotations
 
@@ -11,7 +12,10 @@ import hashlib
 import hmac
 import html
 import importlib.util
+import fnmatch
+import getpass
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -23,7 +27,7 @@ import subprocess
 import time
 from collections import defaultdict
 
-VERSION = "0.4.1"
+VERSION = "0.1.0"
 BASE = Path(__file__).resolve().parent.parent
 KINDS = {"SAFE-CANDIDATE", "REVIEW", "PROTECTED", "UNSUPPORTED"}
 PRUNE = {".git", ".svn", ".hg", ".ssh", ".aws", ".gnupg", ".azure",
@@ -32,7 +36,7 @@ PRUNE = {".git", ".svn", ".hg", ".ssh", ".aws", ".gnupg", ".azure",
          "mobile documents", "cloudstorage", "backups", "backup", "time machine"}
 PROTECTED_PARTS = PRUNE | {"system32", "winsxs", "windowsapps", "keychains",
                           "credentials", "indexeddb", "local storage", "sessions",
-                          "certificates", "volumes", "databases"}
+                          "certificates", "volumes", "databases", ".trash", "trash", "$recycle.bin"}
 PROTECTED_NAMES = {"cookies", "login data", "bookmarks", "history", "preferences",
                    "web data", "wallet.dat", "id_rsa", "id_ed25519"}
 SYSTEM_ROOTS = ("/etc", "/usr", "/boot", "/var/lib", "/proc", "/sys", "/dev",
@@ -112,6 +116,9 @@ def read_rules():
             require(rule["classification"] == ("SAFE-CANDIDATE" if rule["strategy"] == "quarantine-bytecode" else "REVIEW"), "Contradictory rule")
             require(rule["strategy"] != "quarantine-bytecode" or rule["id"] == "python-bytecode", "Only verified bytecode quarantine is implemented")
             require(not ({"command", "script", "shell"} & rule.keys()), "Executable rule data is forbidden")
+            if rule.get("project_markers"):
+                require(rule["strategy"] == "audit-only" and isinstance(rule["project_markers"], list) and isinstance(rule.get("artifact_paths"), list), "Invalid project rule")
+                require(all(isinstance(p, str) and p and not Path(p).is_absolute() and ".." not in Path(p).parts for p in rule["project_markers"] + rule["artifact_paths"]), "Unsafe project rule path")
             seen.add(rule["id"])
             rules.append(rule)
     return rules
@@ -172,7 +179,7 @@ def classify(path, root, info, rules, exclusions=()):
         # Exact documented path signatures; a directory called Cache is not a rule.
         for signature in rule["signatures"]:
             sig = [x.casefold() for x in signature.split("/")]
-            if any(parts[i:i + len(sig)] == sig for i in range(len(parts) - len(sig) + 1)):
+            if any(all(fnmatch.fnmatchcase(a, b) for a, b in zip(parts[i:i + len(sig)], sig)) for i in range(len(parts) - len(sig) + 1)):
                 return rule, "REVIEW", {"signature": signature, "active_use": "unknown"}
     return None, "PROTECTED", None
 
@@ -201,19 +208,26 @@ def probe(request):
             pass
     tools = {name: bool(shutil.which(name)) for name in ("python3", "node", "npm", "pnpm", "yarn", "bun", "pip", "cargo", "rustc", "go", "dotnet", "gradle", "mvn", "docker", "brew", "xcodebuild")}
     return {"version": VERSION, "platform": pid, "os_version": platform.release(),
+            "current_user": getpass.getuser(),
             "home": str(home), "disk": {"total": usage.total, "used": usage.used, "free": usage.free},
+            "access": {"read": os.access(selected, os.R_OK), "write": os.access(selected, os.W_OK), "administrator_requested": False},
+            "backup_snapshot_tools": {name: bool(shutil.which(name)) for name in ("tmutil", "diskutil", "btrfs", "zfs", "vssadmin", "wbadmin")},
             "mounts": mounts, "tools": tools,
             "suggested_roots": [str(x) for x in roots.get(pid, []) if x.is_dir()],
             "capabilities": {"metadata": True,
                              "content_hashing": os.name == "posix" and os.open in os.supports_dir_fd,
                              "quarantine": os.name == "posix" and os.open in os.supports_dir_fd,
-                             "permanent_delete": False, "active_use_detection": False,
+                             "permanent_delete": os.name == "posix" and os.open in os.supports_dir_fd,
+                             "permanent_delete_scope": "separately approved private bytecode quarantine only",
+                             "active_use_detection": bool(shutil.which("lsof")) if os.name == "posix" else False,
                              "native_maintenance": "agent-guided; no automatic execution"},
             "notes": ["Suggested roots are proposals; scan only user-authorized scope.",
                       "Filesystem type and mounts are best effort; no mount is automatically authorized."]}
 
 
 def scan(request):
+    metadata_only = request.get("protected_metadata_only", False)
+    require(not metadata_only or request.get("scope_review_approved") is True, "Protected metadata inspection requires explicit scope review")
     require(isinstance(request.get("roots"), list) and request["roots"], "Explicit roots are required")
     roots = [absolute(x) for x in request["roots"]]
     require(len(roots) <= 32, "At most 32 roots per scan")
@@ -223,13 +237,16 @@ def scan(request):
     rules = read_rules()
     mounts = mount_points()
     limit = min(max(int(request.get("max_entries", 20000)), 1), 100000)
-    seconds = min(max(float(request.get("max_seconds", 10)), 0.01), 120)
+    seconds = float(request.get("max_seconds", 10))
+    require(math.isfinite(seconds), "Scan time budget must be finite")
+    seconds = min(max(seconds, 0.01), 120)
     depth = min(max(int(request.get("max_depth", 12)), 0), 64)
     started = time.monotonic()
     entries, issues, seen, count = [], [], set(), 0
     complete = True
     for root in roots:
-        require(root.is_dir() and not protected(root, exclusions), "Scan root is protected or not a directory")
+        require(root.is_dir() and (metadata_only or not protected(root, exclusions)), "Scan root is protected or not a directory")
+        require(not any(inside(root, Path(x)) for x in exclusions), "Scan root is excluded")
         rootdev = root.stat().st_dev
         stack = [(root, 0)]
         while stack:
@@ -254,7 +271,7 @@ def scan(request):
                             if redirect(s) or s.st_dev != rootdev or os.path.ismount(path) or path in mounts:
                                 issues.append({"path": str(path), "reason": "redirection-or-mount"}); continue
                             if item.is_dir(follow_symlinks=False):
-                                if path.name.casefold() in PRUNE or protected(path, exclusions):
+                                if path.name.casefold() in PRUNE or any(inside(path, Path(x)) for x in exclusions) or (not metadata_only and protected(path, exclusions)):
                                     issues.append({"path": str(path), "reason": "protected"})
                                 elif level < depth:
                                     stack.append((path, level + 1))
@@ -264,12 +281,13 @@ def scan(request):
                             if not stat.S_ISREG(s.st_mode):
                                 continue
                             info = identity(s)
-                            rule, kind, evidence = classify(path, root, info, rules, exclusions)
+                            rule, kind, evidence = (None, "PROTECTED", None) if metadata_only else classify(path, root, info, rules, exclusions)
                             allocated = getattr(s, "st_blocks", None)
                             allocated = allocated * 512 if allocated is not None else None
                             key = (s.st_dev, s.st_ino)
                             unique = key not in seen; seen.add(key)
                             candidate = {"path": str(path), "root": str(root), "identity": info,
+                                         "created_ns": getattr(s, "st_birthtime_ns", None),
                                          "logical_bytes": s.st_size, "allocated_bytes": allocated,
                                          "unique_inode": unique, "classification": kind,
                                          "rule_id": rule["id"] if rule else None,
@@ -292,6 +310,7 @@ def scan(request):
     for issue in issues:
         issue["classification"] = "PROTECTED" if issue["reason"] == "protected" else "UNSUPPORTED"
     return {"schema_version": 1, "version": VERSION, "created_at": now(), "roots": list(map(str, roots)),
+            "protected_metadata_only": bool(metadata_only),
             "exclude": exclusions, "complete": complete, "entries_visited": count,
             "entries": entries, "issues": issues, "disks": disks,
             "summary": summarize(entries), "changes_made": False}
@@ -308,7 +327,7 @@ def summarize(entries):
     return out
 
 
-def safe_hash(entry, budget):
+def safe_hash(entry, budget, read_counter=None):
     path = absolute(entry["path"])
     require(not protected(path), "Protected content cannot be hashed")
     require(entry["identity"]["size"] <= budget, "Hash byte budget exhausted")
@@ -322,6 +341,8 @@ def safe_hash(entry, budget):
             while remaining:
                 chunk = os.read(fd, min(1024 * 1024, remaining))
                 require(chunk, "File changed during hashing")
+                if read_counter is not None:
+                    read_counter[0] += len(chunk)
                 hasher.update(chunk); remaining -= len(chunk)
             require(identity(os.fstat(fd)) == entry["identity"], "File changed during hashing")
             return hasher.hexdigest()
@@ -334,12 +355,13 @@ def analyze(request):
     entries = inventory["entries"]
     out = {"schema_version": 1, "summary": summarize(entries),
            "largest": sorted(entries, key=lambda x: x["logical_bytes"], reverse=True)[:min(int(request.get("top", 20)), 100)],
-           "duplicates": [], "hash_bytes_read": 0, "issues": [], "changes_made": False}
+           "duplicates": [], "hash_bytes_read": 0, "hash_budget_charged_bytes": 0, "issues": [], "changes_made": False}
     if request.get("duplicates"):
         require(request.get("content_read_approved") is True, "Duplicate hashing requires explicit content-read approval")
         budget = min(max(int(request.get("max_hash_bytes", 256 * 1024**2)), 0), 4 * 1024**3)
         groups = defaultdict(list)
         for entry in entries:
+            require(entry["root"] in inventory["roots"] and inside(Path(entry["path"]), Path(entry["root"])), "Hash candidate escaped inventory scope")
             if entry["unique_inode"] and entry["logical_bytes"] and not protected(Path(entry["path"]), inventory.get("exclude", [])):
                 groups[entry["logical_bytes"]].append(entry)
         for group in groups.values():
@@ -347,20 +369,30 @@ def analyze(request):
                 continue
             matches = defaultdict(list)
             for entry in group:
+                counter = [0]
                 try:
-                    remaining = budget - out["hash_bytes_read"]
+                    remaining = budget - out["hash_budget_charged_bytes"]
                     require(entry["logical_bytes"] <= remaining, "Hash byte budget exhausted")
                     # Charge the allowance even if the post-read identity check fails.
-                    out["hash_bytes_read"] += entry["logical_bytes"]
-                    key = safe_hash(entry, remaining)
+                    out["hash_budget_charged_bytes"] += entry["logical_bytes"]
+                    key = safe_hash(entry, remaining, counter)
                     matches[key].append(entry["id"])
                 except (OSError, Refusal):
                     out["issues"].append({"id": entry["id"], "reason": "hash-skipped"})
+                finally:
+                    out["hash_bytes_read"] += counter[0]
             for hash_, ids in matches.items():
                 if len(ids) > 1:
+                    reference = min((e for e in entries if e["id"] in ids), key=lambda e: e["identity"]["mtime_ns"])
                     out["duplicates"].append({"sha256": hash_, "candidate_ids": ids,
+                                              "reference_candidate_id": reference["id"], "reference_basis": "oldest modified copy; heuristic, not proof of origin",
                                               "classification": "PROTECTED", "automatic_removal": False,
                                               "physical_savings": None})
+    from _audit import enrich_analysis
+    out.update(enrich_analysis(inventory, request))
+    if request.get("previous_inventory"):
+        from _audit import compare
+        out["comparison"] = compare({"before": request["previous_inventory"], "after": inventory})
     return out
 
 
@@ -435,6 +467,7 @@ def revalidate(entry, exclusions=()):
 
 def create_plan(request):
     inventory = request["inventory"]
+    require(not inventory.get("protected_metadata_only"), "Protected metadata audits cannot authorize cleanup plans")
     store = Store(request["state_dir"])
     roots = [absolute(x) for x in inventory["roots"]]
     require(not any(inside(store.path, r) or inside(r, store.path) for r in roots), "State must be outside scan roots")
@@ -454,7 +487,7 @@ def create_plan(request):
             "rule_catalog_digest": digest(read_rules()),
             "exclude": inventory.get("exclude", []), "roots": inventory["roots"],
             "estimated_immediate_free_bytes": 0,
-            "warning": "Quarantine moves files on the same filesystem; it frees no disk space. No permanent purge is implemented.",
+            "warning": "Quarantine moves files on the same filesystem and frees no disk space. Permanent removal requires a separate, newly approved purge plan.",
             "requires": "User approval of this exact plan after stopping the generating Python workload"}
     plan["digest"] = digest(plan)
     store.save("plan-" + plan["id"] + ".json", plan)
@@ -509,6 +542,7 @@ def execute(request):
     require(receipt["plan_id"] == plan["id"] and receipt["plan_digest"] == plan["digest"], "Approval does not match plan")
     require(receipt["candidate_ids"] == [x["id"] for x in plan["entries"]], "Approval scope mismatch")
     require(time.time() < receipt["expires_at"], "Approval expired")
+    require(shutil.disk_usage(store.path).free >= len(canonical(plan)) * 4 + 65536, "Insufficient free space for safe operation journals; use reviewed native storage controls")
     # Atomic consumption prevents parallel/replayed execution, even after interruption.
     store.write_exclusive("used-" + receipt["id"] + ".json", {"started_at": now()})
     operation = {"schema_version": 1, "id": secrets.token_hex(16), "plan_id": plan["id"],
@@ -640,11 +674,14 @@ def docker_audit(request):
 
 
 def human_report(request):
+    if "operation" in request:
+        from _audit import operation_report
+        return operation_report(request)
     inventory = request["inventory"]
     shareable = request.get("shareable", True)
     def location(entry):
         if shareable:
-            return "<item:" + entry["id"][:8] + ">"
+            return "item-" + entry["id"][:8]
         # Untrusted names must never become Markdown links, images or HTML.
         value = html.escape(entry["path"].replace("\n", "\\n").replace("\r", "\\r"))
         return re.sub(r"([\\`*_{}\[\]()#+.!|>-])", r"\\\1", value)

@@ -86,7 +86,7 @@ Plans last at most 15 minutes. Approval does not refresh plan expiration.
 Execution revalidates again, checks the running interpreter's bytecode magic, writes
 intent, moves sequentially, checks each resulting identity, and journals outcomes.
 All other categories, Windows execution, cross-filesystem moves, and permanent
-purges are unsupported. Stop on partial results and inspect journals. There is no
+purges are excluded from this quarantine workflow. Stop on partial results and inspect journals. There is no
 automatic retry or overwrite of existing outputs. No source, directory, or user
 document is eligible for this move strategy.
 
@@ -128,3 +128,94 @@ inventory = json.loads(response.stdout)["result"]
 Consent, host permissions, private state selection, user dialogue and report retention
 belong to the hosting agent. Schema validation checks shapes; engine revalidation and
 signed state enforce policy. A syntactically valid external inventory is not authority.
+
+## All modes and extended analysis
+
+`audit.py` takes `{mode, roots, exclude?, policy?, ...limits}`. Modes are `quick`,
+`deep`, `safe-cleanup`, `developer`, `emergency`, `targeted`, `duplicates`, `health`,
+`compare`, and `custom`. It returns `{inventory, analysis, proposal}` and never
+changes data or grants action permission. Deep scans need an explicitly reviewed
+scope/budget; selecting a mode does not silently expand limits. Duplicate mode
+requires `content_read_approved:true`.
+
+`analyze.py` additionally accepts `sort_by`: `size`, `oldest`, `location`, `type`,
+`application`, or `recoverability`. It returns ranked files, directory totals,
+project-marker artifacts and storage-health findings. `previous_inventory` adds a
+comparison. Project analysis is bounded and marks incomplete coverage.
+
+`recommend.py` accepts `{inventory}` and emits exact IDs, sizes, potential upper
+bounds, evidence, side effects, recovery and mechanism. Every row starts unapproved.
+Generated project outputs are REVIEW; this cannot promote them into a bytecode plan.
+
+`compare.py`: `{before:INVENTORY,after:INVENTORY}` requires identical roots/exclusions.
+It reports additions, removals, changed metadata, logical growth and observed
+available-space deltas. These do not independently prove cleanup causation.
+
+## Protected data, native interfaces and leftovers
+
+`inventory.py` can take `protected_metadata_only:true,scope_review_approved:true`
+for a specifically selected protected scope. Every result is PROTECTED, secrets
+and dependency subtrees remain pruned where appropriate, and the inventory cannot
+enter a cleanup plan. This allows backup, Trash and dependency size inspection
+without making user data disposable.
+
+`trash_audit.py`: `{authorized:true,roots:["EXACT_TRASH_FILES_ROOT"],...limits}`
+uses that protected mode and reports recoverable bytes without emptying anything.
+`recycle_bin.py`: `{authorized:true,volumes:["C:\\"]}` uses Windows' current-user
+SHQueryRecycleBinW interface. It cannot empty the bin.
+
+`applications.py`: `{authorized:true}` runs fixed read-only native application
+inventory interfaces. `leftovers.py`: `{inventory,applications:APPLICATION_RESULT}`
+compares known associations. Missing/portable apps and incomplete inventories always
+remain uncertain; no leftover is automatically removable.
+
+`native_storage.py`: `{authorized:true}` runs platform-specific read-only volume,
+filesystem, journal and snapshot queries. `activity.py` takes
+`{authorized:true,inventory,candidate_ids:[...]}` (1–100 IDs), uses lsof where
+available, and reports observed open handles or unknown. Native failures never
+request elevation, force-close programs, or authorize substitute shell commands.
+
+## Restrictive policies and private history
+
+`profiles.py`: `{policy:POLICY}` validates an in-memory policy. Add
+`save:true,user_approved:true,state_dir:STATE` to save it in private signed POSIX
+state. Policy fields: `roots`, `exclude`, resource limits, `preserve_offline`, and
+`never_permanently_delete`. Execution/auto-approval fields are rejected.
+`audit.py` can load a saved `profile_id` with `state_dir`; requests cannot exceed
+its roots or budgets. Session policies work on Windows; private saved state needs POSIX.
+
+`snapshots.py`: `{state_dir:STATE,inventory,user_approved:true}` saves a private
+signed inventory. `{state_dir:STATE,snapshot_id:ID}` loads it. Neither grants action
+permission. Keep saved inventories private and establish retention with the user.
+
+## Separately authorized permanent removal
+
+Only verified private bytecode quarantine can use this workflow. Original files,
+Trash, arbitrary directories and other cache categories cannot be passed to it.
+
+1. `purge_plan.py`: `{state_dir:STATE,operation_id:QUARANTINE_RESULT_ID,candidate_ids:[...]}`.
+   Pass a session `policy` or stored `profile_id` when applicable; a
+   `never_permanently_delete` restriction blocks planning.
+2. Display exact members, sizes, digest, expiry and the irreversible warning.
+   Obtain fresh explicit user approval of permanent removal. Do not reuse or infer
+   this approval from a quarantine operation, preferences, or a report.
+3. `purge_approve.py`: `{state_dir:STATE,plan_id:ID,plan_digest:DIGEST,user_approved:true,
+   acknowledge_irreversible:true,approval_note:"Minimal fresh approval record"}`.
+4. `purge_execute.py`: `{state_dir:STATE,plan_id:ID,approval_id:PURGE_RECEIPT_ID}`.
+   The receipt is consumed once. Each private object must retain its exact identity,
+   single link, ownership, regular type and bytecode magic. Intent and outcome are
+   journaled. One guarded POSIX unlink removes only the derived private candidate ID.
+5. `purge_verify.py`: `{state_dir:STATE,operation_id:PURGE_RESULT_ID}` verifies
+   absence and reports observed free-space changes. Stop and reconcile partial or
+   interrupted results; never blindly replay deletion. Purged data cannot be restored
+   from quarantine. Snapshots/shared blocks may limit immediately recovered space.
+
+This is a separate execution strategy, not a general-purpose delete API. Host-agent
+approval enforcement and private/quiescent state remain part of the trust boundary.
+
+## Final cleanup reports
+
+`report.py` accepts `{operation:VERIFIED_RESULT,plan:EXACT_PLAN}` after `verify.py`
+or `purge_verify.py`. It rejects unverified/mismatched operations and reports approved,
+processed, verified, failed and unattempted counts, exact IDs, available space before
+and after, observed delta, reversibility and recovery. Final reports omit private paths.

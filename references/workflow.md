@@ -17,7 +17,9 @@
    the first action. Move sequentially; stop on any anomaly. Never expand selection.
 8. **Verify:** inspect signed results and actual filesystem state; distinguish processed,
    failed, and unattempted items. Report disk deltas as observations, not attribution.
-9. **Recover:** offer non-overwriting restoration. Do not purge quarantine to recover space.
+9. **Recover:** offer non-overwriting restoration. Permanent removal needs a new
+   purge plan, separate irreversible acknowledgement and a fresh one-use receipt;
+   quarantine approval cannot authorize it.
 
 A partial scan may still support a narrow plan if its individual candidates revalidate;
 it cannot establish that unvisited storage is safe. A changed candidate, source, rule,

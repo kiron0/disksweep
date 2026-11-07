@@ -222,5 +222,502 @@
     ],
     "supported_versions": "Path-signature metadata audit; validate native tool version separately",
     "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "pnpm-store",
+    "version": 1,
+    "category": "dependency-store",
+    "application": "pnpm",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "high",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".local/share/pnpm/store",
+      "AppData/Local/pnpm/store",
+      ".pnpm-store"
+    ],
+    "reason": "Shared pnpm content store; inspect through pnpm and preserve offline dependencies",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "maven-local",
+    "version": 1,
+    "category": "dependency-store",
+    "application": "Maven",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "high",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".m2/repository"
+    ],
+    "reason": "Maven local repository may contain unpublished, irreplaceable artifacts",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "go-build",
+    "version": 1,
+    "category": "developer-cache",
+    "application": "Go",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".cache/go-build",
+      "Library/Caches/go-build",
+      "AppData/Local/go-build"
+    ],
+    "reason": "Recognized Go build cache; review installed Go native cache controls",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "nuget-packages",
+    "version": 1,
+    "category": "dependency-store",
+    "application": ".NET/NuGet",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "high",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".nuget/packages"
+    ],
+    "reason": "Shared NuGet package installation; preserve offline and private-feed packages",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "ruby-downloads",
+    "version": 1,
+    "category": "package-cache",
+    "application": "Ruby/Bundler",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".bundle/cache",
+      ".cache/gem"
+    ],
+    "reason": "Known Ruby download cache; inspect native gem/Bundler inventory",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "composer-downloads",
+    "version": 1,
+    "category": "package-cache",
+    "application": "Composer",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".cache/composer/files",
+      "Library/Caches/composer/files",
+      "AppData/Local/Composer/files"
+    ],
+    "reason": "Composer download-cache path; inspect native composer cache configuration",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "android-temporary",
+    "version": 1,
+    "category": "application-temporary",
+    "application": "Android SDK",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      "Android/Sdk/.temp",
+      "Library/Android/sdk/.temp"
+    ],
+    "reason": "Android SDK temporary location; active or pending SDK installs must be preserved",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "flutter-packages",
+    "version": 1,
+    "category": "dependency-store",
+    "application": "Flutter/Dart",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "high",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".pub-cache"
+    ],
+    "reason": "Shared Dart package store; retain offline dependencies and local artifacts",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "kotlin-native",
+    "version": 1,
+    "category": "developer-cache",
+    "application": "Kotlin/Native",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".konan/cache"
+    ],
+    "reason": "Kotlin/Native cache association; preserve toolchains and active builds",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "xcode-simulator-cache",
+    "version": 1,
+    "category": "developer-cache",
+    "application": "Xcode",
+    "platforms": [
+      "macos"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      "Library/Developer/CoreSimulator/Caches"
+    ],
+    "reason": "Known CoreSimulator cache root; do not touch Devices or simulator user data",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "javascript-build",
+    "version": 1,
+    "category": "project-build",
+    "application": "JavaScript build tools",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [],
+    "reason": "Exact build-output path in a project identified by a regular marker file",
+    "side_effects": "Rebuild cost and possible offline dependency or test-output loss; audit only",
+    "recovery": "Native purge is irreversible; packages may be downloaded again",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability",
+    "project_markers": [
+      "package.json"
+    ],
+    "artifact_paths": [
+      ".next/cache",
+      ".turbo",
+      ".vite",
+      "node_modules/.cache",
+      ".cache/webpack",
+      "coverage"
+    ]
+  },
+  {
+    "id": "python-test",
+    "version": 1,
+    "category": "project-build",
+    "application": "Python test and analysis tools",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [],
+    "reason": "Exact build-output path in a project identified by a regular marker file",
+    "side_effects": "Rebuild cost and possible offline dependency or test-output loss; audit only",
+    "recovery": "Native purge is irreversible; packages may be downloaded again",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability",
+    "project_markers": [
+      "pyproject.toml",
+      "setup.cfg",
+      "setup.py",
+      "pytest.ini"
+    ],
+    "artifact_paths": [
+      ".pytest_cache",
+      ".mypy_cache",
+      ".ruff_cache",
+      ".tox/.tmp"
+    ]
+  },
+  {
+    "id": "rust-build",
+    "version": 1,
+    "category": "project-build",
+    "application": "Cargo",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [],
+    "reason": "Exact build-output path in a project identified by a regular marker file",
+    "side_effects": "Rebuild cost and possible offline dependency or test-output loss; audit only",
+    "recovery": "Native purge is irreversible; packages may be downloaded again",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability",
+    "project_markers": [
+      "Cargo.toml"
+    ],
+    "artifact_paths": [
+      "target"
+    ]
+  },
+  {
+    "id": "jvm-build",
+    "version": 1,
+    "category": "project-build",
+    "application": "Maven/Gradle",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [],
+    "reason": "Exact build-output path in a project identified by a regular marker file",
+    "side_effects": "Rebuild cost and possible offline dependency or test-output loss; audit only",
+    "recovery": "Native purge is irreversible; packages may be downloaded again",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability",
+    "project_markers": [
+      "pom.xml",
+      "build.gradle",
+      "build.gradle.kts",
+      "settings.gradle"
+    ],
+    "artifact_paths": [
+      "target",
+      "build",
+      ".gradle"
+    ]
+  },
+  {
+    "id": "dotnet-build",
+    "version": 1,
+    "category": "project-build",
+    "application": ".NET",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [],
+    "reason": "Exact build-output path in a project identified by a regular marker file",
+    "side_effects": "Rebuild cost and possible offline dependency or test-output loss; audit only",
+    "recovery": "Native purge is irreversible; packages may be downloaded again",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability",
+    "project_markers": [
+      "Directory.Build.props",
+      "global.json"
+    ],
+    "artifact_paths": [
+      "bin",
+      "obj"
+    ]
+  },
+  {
+    "id": "flutter-build",
+    "version": 1,
+    "category": "project-build",
+    "application": "Flutter",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [],
+    "reason": "Exact build-output path in a project identified by a regular marker file",
+    "side_effects": "Rebuild cost and possible offline dependency or test-output loss; audit only",
+    "recovery": "Native purge is irreversible; packages may be downloaded again",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability",
+    "project_markers": [
+      "pubspec.yaml"
+    ],
+    "artifact_paths": [
+      ".dart_tool",
+      "build"
+    ]
   }
 ]

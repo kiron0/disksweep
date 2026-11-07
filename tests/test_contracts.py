@@ -27,6 +27,8 @@ class ContractTests(Fixture):
         for entry in inventory["entries"]:
             self.validate("candidate", entry)
         self.validate("report", core.human_report({"inventory": inventory}))
+        from _audit import recommendations
+        self.validate("proposal", recommendations({"inventory": inventory}))
 
     @unittest.skipUnless(os.name == "posix", "POSIX private-state workflow")
     def test_signed_plan_approval_and_execution_contracts(self):
@@ -34,6 +36,17 @@ class ContractTests(Fixture):
         self.validate("plan", plan)
         self.validate("approval", receipt)
         self.validate("operation", self.execute(plan, receipt))
+
+    @unittest.skipUnless(os.name == "posix", "POSIX private quarantine")
+    def test_permanent_cleanup_contracts(self):
+        import _purge
+        plan = self.plan(); receipt = self.approval(plan); operation = self.execute(plan, receipt)
+        purge_plan = _purge.create_plan({"state_dir": str(self.state), "operation_id": operation["id"], "candidate_ids": [operation["items"][0]["candidate_id"]]})
+        self.validate("purge-plan", purge_plan)
+        approval = _purge.approve({"state_dir": str(self.state), "plan_id": purge_plan["id"], "plan_digest": purge_plan["digest"], "user_approved": True, "acknowledge_irreversible": True, "approval_note": "Synthetic exact-scope permanent deletion approval"})
+        self.validate("purge-approval", approval)
+        result = _purge.execute({"state_dir": str(self.state), "plan_id": purge_plan["id"], "approval_id": approval["id"]})
+        self.validate("purge-result", result)
 
 
 class RuleTests(Fixture):
@@ -65,13 +78,17 @@ class RuleTests(Fixture):
     def test_each_audit_signature_and_protected_override(self):
         rules = core.read_rules()
         for rule in rules:
-            if rule["strategy"] == "quarantine-bytecode":
+            if rule["strategy"] == "quarantine-bytecode" or rule.get("project_markers"):
                 continue
             with self.subTest(rule=rule["id"]), patch.object(core, "platform_id", return_value=rule["platforms"][0]):
-                path = self.root / rule["signatures"][0] / "resource.bin"
+                path = self.root / rule["signatures"][0].replace("*", "fixture") / "resource.bin"
                 path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(b"resource")
                 info = core.identity(path.stat())
                 matched, kind, _ = core.classify(path, self.root, info, [rule])
+                if core.protected(path):
+                    self.assertEqual(kind, "PROTECTED")
+                    self.assertIsNone(matched)
+                    continue
                 self.assertEqual(kind, "REVIEW")
                 self.assertEqual(matched["id"], rule["id"])
                 self.assertEqual(core.classify(path, self.root, info, [rule], [str(path.parent)])[1], "PROTECTED")

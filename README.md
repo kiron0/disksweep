@@ -26,9 +26,9 @@ Every supported file move requires your approval of the exact plan.
 
 ## Cleanup support
 
-Approved quarantine is available for eligible Python bytecode on macOS and Linux.
-Quarantine preserves files and **does not free disk space**. Other cleanup categories
-provide audit findings and guidance for native cleanup tools. Permanent deletion is disabled.
+Eligible Python bytecode can be quarantined on macOS and Linux. Quarantine retains
+files and frees no space. Clearing that quarantine permanently requires a separate
+approval. Other categories use audit findings and native cleanup guidance.
 
 [Usage guide](docs/usage.md) · [Platform support](docs/implementation-status.md) ·
 [Releases](https://github.com/kiron0/disksweep/releases) · [Security](SECURITY.md) · [MIT license](LICENSE)

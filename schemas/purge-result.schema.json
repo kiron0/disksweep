@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kiron0/disksweep/schemas/purge-result.schema.json",
+  "title": "DiskSweep purge-result",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "plan_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "action": {
+      "const": "permanent-delete-quarantined-bytecode"
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "finished_at": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "candidate_id": {
+            "type": "string"
+          },
+          "quarantined": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "permanently-removed",
+              "failed-stop"
+            ]
+          },
+          "verified_absent": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidate_id",
+          "quarantined",
+          "status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "before_free": {
+      "type": "integer"
+    },
+    "after_free": {
+      "type": "integer"
+    },
+    "observed_free_delta": {
+      "type": "integer"
+    },
+    "irreversible": {
+      "const": true
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial"
+      ]
+    },
+    "warning": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "plan_id",
+    "action",
+    "started_at",
+    "finished_at",
+    "items",
+    "before_free",
+    "after_free",
+    "observed_free_delta",
+    "irreversible",
+    "status",
+    "warning"
+  ],
+  "additionalProperties": false
+}

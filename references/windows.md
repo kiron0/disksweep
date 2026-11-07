@@ -2,7 +2,7 @@
 
 Audit explicit user paths using Python 3.10+ and metadata only. Inspect recognized pip,
 npm, default-profile browser resource cache paths and user CrashDumps. TEMP contents
-are unknown/protected unless a future verified rule recognizes their generating app.
+remain protected; application-specific temporary signatures produce review findings only.
 Junctions, symbolic links, and FILE_ATTRIBUTE_REPARSE_POINT objects are skipped.
 Windows metadata traversal has best-effort race checks, not native pinned handles.
 

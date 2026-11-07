@@ -50,5 +50,31 @@
     ],
     "supported_versions": "Path-signature metadata audit; validate native tool version separately",
     "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "apple-device-backups",
+    "version": 1,
+    "category": "backup",
+    "application": "Apple device backup",
+    "platforms": [
+      "macos"
+    ],
+    "risk": "high",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      "Library/Application Support/MobileSync/Backup"
+    ],
+    "reason": "Device backup metadata is informational; never remove without separate recovery review",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
   }
 ]

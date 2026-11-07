@@ -1,0 +1,122 @@
+[
+  {
+    "id": "vscode-generated",
+    "version": 1,
+    "category": "application-cache",
+    "application": "Visual Studio Code",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".config/Code/CachedData",
+      ".config/Code/GPUCache",
+      "Library/Application Support/Code/CachedData",
+      "AppData/Roaming/Code/CachedData"
+    ],
+    "reason": "Verified VS Code generated-data path; preserve settings, extensions, sessions and workspace data",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "vscode-diagnostics",
+    "version": 1,
+    "category": "diagnostics",
+    "application": "Visual Studio Code",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".config/Code/logs",
+      "Library/Application Support/Code/logs",
+      "AppData/Roaming/Code/logs"
+    ],
+    "reason": "VS Code diagnostic logs; active debugging and incident retention must be reviewed",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "jetbrains-caches",
+    "version": 1,
+    "category": "application-cache",
+    "application": "JetBrains IDE",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      ".cache/JetBrains",
+      "Library/Caches/JetBrains"
+    ],
+    "reason": "IDE cache root association; never infer all contents are reproducible or inactive",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  },
+  {
+    "id": "pip-temporary",
+    "version": 1,
+    "category": "application-temporary",
+    "application": "pip",
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "risk": "moderate",
+    "classification": "REVIEW",
+    "strategy": "audit-only",
+    "signatures": [
+      "tmp/pip-build-tracker-*",
+      "tmp/pip-unpack-*",
+      "AppData/Local/Temp/pip-build-tracker-*"
+    ],
+    "reason": "Application-specific pip temporary path signature; only an audit hint; age and active-use review are mandatory",
+    "side_effects": "May disrupt active work, offline use, retention or recovery. No automatic cleanup of these findings.",
+    "recovery": "Use the native tool and verify regeneration/recovery before authorizing any irreversible action",
+    "exclusions": [
+      "protected paths",
+      "symlinks and reparse points",
+      "separate mounts",
+      "active workloads"
+    ],
+    "supported_versions": "Path-signature metadata audit; validate native tool version separately",
+    "post_check": "Re-inventory exact scope; compare disk availability"
+  }
+]

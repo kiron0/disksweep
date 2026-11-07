@@ -126,6 +126,12 @@
     },
     "active_use": {
       "const": "unknown"
+    },
+    "created_ns": {
+      "type": [
+        "integer",
+        "null"
+      ]
     }
   },
   "required": [

@@ -34,15 +34,20 @@ def check():
             if re.match(r"[a-z]+://", target) or target.startswith("#"):
                 continue
             assert (file.parent / target.split("#")[0]).exists(), f"Broken reference in {file.name}: {target}"
-    from _core import read_rules
+    from _core import read_rules, VERSION
+    if "metadata" in meta:
+        assert meta["metadata"]["version"] == VERSION, "Skill and helper versions must match"
     rules = read_rules()
     required = {"id", "version", "category", "application", "platforms", "risk", "classification", "strategy", "signatures", "reason", "side_effects", "recovery", "exclusions", "supported_versions", "post_check"}
     for rule in rules:
-        assert set(rule) == required, f"Missing or unexpected rule fields: {rule['id']}"
+        assert required <= set(rule) <= required | {"project_markers", "artifact_paths"}, f"Missing or unexpected rule fields: {rule['id']}"
         assert rule["platforms"] and set(rule["platforms"]) <= {"linux", "macos", "windows"}
         assert rule["risk"] in {"low", "moderate", "high", "critical"}
         assert all(isinstance(s, str) and s and ".." not in s.split("/") for s in rule["signatures"])
-        assert rule["signatures"] or rule["id"] == "python-bytecode"
+        assert rule["signatures"] or rule["id"] == "python-bytecode" or rule.get("project_markers")
+        if rule.get("project_markers"):
+            assert rule["strategy"] == "audit-only" and rule.get("artifact_paths")
+            assert all(not Path(p).is_absolute() and ".." not in Path(p).parts for p in rule["project_markers"] + rule["artifact_paths"])
     schemas = list((BASE / "schemas").glob("*.json"))
     try:
         from jsonschema import Draft202012Validator
@@ -55,11 +60,16 @@ def check():
     forbidden = {"eval", "exec", "unlink", "remove", "rmdir", "rmtree"}
     for file in (BASE / "scripts").glob("*.py"):
         tree = ast.parse(file.read_text(encoding="utf-8"))
+        if file.name == "_purge.py":
+            removals = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "unlink"]
+            execute = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "execute")
+            assert len(removals) == 1 and removals[0] in list(ast.walk(execute)), "Only one guarded private-quarantine unlink is permitted"
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue
             name = node.func.id if isinstance(node.func, ast.Name) else getattr(node.func, "attr", "")
-            assert name not in forbidden, f"Forbidden runtime operation: {file.name}:{node.lineno}"
+            permitted_purge = file.name == "_purge.py" and name == "unlink" and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and node.func.value.id == "os"
+            assert name not in forbidden or permitted_purge, f"Forbidden runtime operation: {file.name}:{node.lineno}"
             assert not (name == "system" and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and node.func.value.id == "os"), "OS shell execution forbidden"
             assert not any(k.arg == "shell" and not (isinstance(k.value, ast.Constant) and k.value.value is False) for k in node.keywords), "Shell execution forbidden"
     cases = json.loads((BASE / "evals/evals.json").read_text(encoding="utf-8"))
