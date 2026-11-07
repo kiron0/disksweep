@@ -27,7 +27,7 @@ import subprocess
 import time
 from collections import defaultdict
 
-VERSION = "0.1.4"
+VERSION = "0.1.5"
 BASE = Path(__file__).resolve().parent.parent
 KINDS = {"SAFE-CANDIDATE", "REVIEW", "PROTECTED", "UNSUPPORTED"}
 PRUNE = {".git", ".svn", ".hg", ".ssh", ".aws", ".gnupg", ".azure",

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.5 — 2026-11-08
+
+- Make `start --guide` without folders suggest `start` for the bounded current-user
+  scan, matching the default workflow, instead of `scan full --root PATH` and doctor.
+- Render `find large`, `find directories` and `find duplicates` matches as readable
+  tables with root-relative locations instead of raw JSON, and show non-normal
+  storage health in scan summaries. JSON output is unchanged.
+
 ## 0.1.4 — 2026-11-08
 
 - Continue read-only discovery, inventory, analysis and comparison when volume-space

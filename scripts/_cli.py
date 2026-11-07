@@ -347,6 +347,55 @@ def dispatch(args):
     return {"rules": [r for r in rules if (not args.category or r["category"] == args.category) and (not args.platform or args.platform in r["platforms"])], "changes_made": False}
 
 
+def cell(value):
+    return str(value).replace("|", "\\|").replace("\n", " ")
+
+
+def relative(path, roots):
+    for index, root in enumerate(roots, 1):
+        try:
+            rest = os.path.relpath(path, root)
+        except ValueError:
+            continue
+        if rest == "." or not (rest == ".." or rest.startswith(".." + os.sep)):
+            return f"root {index}" + ("" if rest == "." else "/" + Path(rest).as_posix())
+    return "outside recorded roots"
+
+
+def render_health(health, roots):
+    lines = []
+    for item in health:
+        pressure = item.get("storage_pressure", "unknown")
+        if pressure == "normal":
+            continue
+        label = relative(item["root"], roots)
+        if item.get("free_bytes") is None or item.get("free_ratio") is None:
+            lines.append(f"- {label}: free space unknown")
+        else:
+            lines.append(f"- {label}: {item['free_bytes']} bytes free ({item['free_ratio']:.1%}), {pressure}")
+    return ("\nStorage health:\n" + "\n".join(lines) + "\n") if lines else ""
+
+
+def render_matches(action, matches, roots):
+    if not matches:
+        return "\nMatches: none within the recorded scope.\n"
+    if action == "directories":
+        rows = ["| Directory | Files | Logical bytes | Coverage |", "|---|---:|---:|---|"]
+        rows += [f"| {cell(relative(m['path'], roots))} | {m['files']} | {m['logical_bytes']} | {'complete' if m.get('coverage_complete') else 'partial'} |" for m in matches]
+    elif action == "duplicates":
+        rows = ["| SHA-256 | Copies | Reference ID | Other IDs |", "|---|---:|---|---|"]
+        rows += [f"| {m['sha256'][:16]} | {len(m['candidate_ids'])} | {m['reference_candidate_id']} | "
+                 + ", ".join(i for i in m["candidate_ids"] if i != m["reference_candidate_id"]) + " |" for m in matches]
+        rows.append("\nExact content matches stay PROTECTED; the reference copy is a heuristic and nothing is removed automatically.")
+    else:
+        rows = ["| ID | Logical bytes | Modified (UTC) | Classification | Location |", "|---|---:|---|---|---|"]
+        rows += [f"| {m['id']} | {m['logical_bytes']} | "
+                 + time.strftime('%Y-%m-%d', time.gmtime(m['identity']['mtime_ns'] / 10**9))
+                 + f" | {m['classification']} | {cell(relative(m['path'], roots))} |" for m in matches]
+        rows.append("\nLarge files are informational; size alone never makes a file removable.")
+    return "\nMatches:\n\n" + "\n".join(rows) + "\n"
+
+
 def reserve_output(path):
     file = Path(os.path.abspath(os.path.expanduser(path)))
     existing = file.parent
@@ -391,8 +440,9 @@ def main(argv=None):
             display = "\n".join(["ID | Category | Application | Strategy", *[f"{r['id']} | {r['category']} | {r['application']} | {r['strategy']}" for r in result["rules"]]])
         elif args.route in {"scan", "find"}:
             display = core.human_report({"inventory": result["inventory"]})["markdown"]
+            display += render_health(result["analysis"].get("health", []), result["inventory"]["roots"])
             if "matches" in result:
-                display += "\nMatches: " + json.dumps(result["matches"], ensure_ascii=True, indent=2) + "\n"
+                display += render_matches(getattr(args, "action", None), result["matches"], result["inventory"]["roots"])
             if not result["analysis"].get("project_analysis_complete", True):
                 display += "\nProject evidence analysis is partial; review JSON limits.\n"
             if result["analysis"]["issues"]:

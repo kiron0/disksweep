@@ -64,11 +64,27 @@ class Commands(Fixture):
         self.assertFalse(result["scope_required"])
         self.assertIn(str(missing), result["suggested_arguments"])
         self.assertFalse(result["execution_authorized"])
-        self.assertTrue(self.data("start", "--guide")["scope_required"])
+        default = self.data("start", "--guide")
+        self.assertFalse(default["scope_required"])
+        self.assertEqual(default["suggested_arguments"][0], "start")
+        self.assertNotIn("--root", default["suggested_arguments"])
+        self.assertTrue(self.data("start", "--guide", "--goal", "quick")["scope_required"])
         duplicates = self.data("start", "--guide", "--goal", "duplicates")
         self.assertNotIn("--allow-content-read", duplicates["suggested_arguments"])
         self.call("start", "--guide", "--root", "", success=False)
         self.assertEqual(before, set(self.base.rglob("*")))
+
+    def test_find_renders_readable_matches_without_absolute_paths(self):
+        large = self.call("find", "large", "--root", self.root, "--min-bytes", "0").stdout
+        self.assertIn("| ID | Logical bytes | Modified (UTC) | Classification | Location |", large)
+        self.assertIn("root 1/", large)
+        self.assertNotIn(str(self.root), large)
+        self.assertNotIn('"identity"', large)
+        directories = self.call("find", "directories", "--root", self.root).stdout
+        self.assertIn("| Directory | Files | Logical bytes | Coverage |", directories)
+        self.assertNotIn(str(self.root), directories)
+        empty = self.call("find", "large", "--root", self.root, "--min-bytes", str(2**60)).stdout
+        self.assertIn("Matches: none within the recorded scope.", empty)
 
     def test_explain_uses_saved_evidence_without_touching_changed_files(self):
         file, scanned = self.save_audit()

@@ -8,7 +8,7 @@ on:
         description: Existing stable version tag to publish or retry
         required: true
         type: string
-        default: v0.1.4
+        default: v0.1.5
 permissions:
   contents: read
 jobs:

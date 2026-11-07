@@ -21,6 +21,14 @@ def start(goal, roots=None):
     core.require(goal in GOALS, "Unknown workflow goal")
     core.require(roots is None or (isinstance(roots, list) and 1 <= len(roots) <= 100
                  and all(isinstance(p, str) and p.strip() for p in roots)), "Supply 1–100 nonempty folders")
+    if goal == "full" and not roots:
+        return {"goal": goal, "scope_required": False, "suggested_arguments": ["start", "--output", "audit.json"],
+                "steps": ["Run start to scan the current local user profile within 100,000 entries, 32 levels and 60 seconds; other drives, profiles and protected areas stay excluded.",
+                          "Review coverage, findings and effects, then answer the single review prompt.",
+                          "Use explain with full candidate IDs from the saved audit to review evidence, effects and recovery.",
+                          "Only supported findings can enter a freshly validated exact plan. Review it before approving changes."],
+                "warning": "Suggestions are argument arrays, never shell scripts. Nothing has been inspected or approved.",
+                "changes_made": False, "execution_authorized": False}
     arguments = list(GOALS[goal])
     for path in roots or ["PATH"]:
         arguments.extend(["--root", path])
