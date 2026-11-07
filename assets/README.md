@@ -3,10 +3,8 @@
 The README cover uses **Unbounded** for its headline and **Onest** for supporting
 text, matching Hopilo's display and body typefaces.
 
-| File | Purpose |
-| :--- | :--- |
-| `readme-cover.source.svg` | Editable text and layout; requires the typefaces locally |
-| `readme-cover.svg` | Text outlined as vector paths for consistent GitHub rendering |
+`readme-cover.svg` contains outlined vector text for consistent GitHub rendering.
+`report-template.md` provides the narrative structure used by the reporting guide.
 
 The exported cover makes no font requests and contains no embedded font binaries.
 Its title, description, and README alternative text remain accessible.

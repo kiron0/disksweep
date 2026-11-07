@@ -1,3 +1,7 @@
+{{CHANGES}}
+
+## Install
+
 ```sh
 npx skills add kiron0/swipr@{{TAG}} --skill swipr
 ```

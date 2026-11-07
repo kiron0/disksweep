@@ -8,7 +8,7 @@ on:
         description: Existing stable version tag to publish or retry
         required: true
         type: string
-        default: v0.1.1
+        default: v0.1.2
 permissions:
   contents: read
 jobs:
@@ -52,7 +52,12 @@ jobs:
           python - <<'PY'
           import os
           from pathlib import Path
-          notes = Path('assets/release-notes.md').read_text().replace('{{TAG}}', os.environ['SWIPR_RELEASE_TAG'])
+          tag = os.environ['SWIPR_RELEASE_TAG']
+          sections = Path('CHANGELOG.md').read_text().split('\n## ')
+          section = next(s for s in sections if s.startswith(tag[1:] + ' — '))
+          changes = section.split('\n', 1)[1].strip()
+          assert changes, 'The release requires changelog entries'
+          notes = Path('.github/release-notes.md').read_text().replace('{{TAG}}', tag).replace('{{CHANGES}}', changes)
           Path('dist/release-notes.md').write_text(notes)
           PY
       - name: Publish the stable release

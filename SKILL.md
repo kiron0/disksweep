@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires a local agent with filesystem tools and Python 3.10+. Metadata audits support macOS, Windows, and Linux. Secure duplicate hashing and bytecode quarantine/purge require POSIX directory handles. Windows supports metadata audits and native guidance; direct cleanup and content hashing are unavailable.
 metadata:
   author: Toufiq Hasan Kiron
-  version: "0.1.1"
+  version: "0.1.2"
 ---
 
 # Swipr

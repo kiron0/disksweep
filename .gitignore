@@ -1,12 +1,72 @@
+# Python environments, caches, and build output.
 __pycache__/
 *.py[cod]
 .venv/
+venv/
+.tox/
+.nox/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
+build/
 dist/
-work/
-.swipr/
+*.egg-info/
 *.skill
 
-# Preserve private state from development builds.
+# Local settings, agent installations, and dependency caches.
+.env
+.env.*
+!.env.example
+!.env.*.example
+.idea/
+.vscode/
+.agents/skills/
+.claude/skills/
+.cursor/skills/
+node_modules/
+
+# Scratch files and operating-system metadata.
+work/
+.tmp/
+tmp/
+*.tmp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Private runtime state, including the previous project name.
+.swipr/
 .disksweep/
+/state/
+
+# Default local results from the documented examples.
+/audit*.json
+/capabilities.json
+/developer.json
+/deep.json
+/before.json
+/after.json
+/growth.json
+/duplicates.json
+/archives.json
+/multi-volume.json
+/apps.json
+/storage.json
+/docker.json
+/policy.json
+/plan.json
+/approval.json
+/operation.json
+/verified.json
+/purge-*.json
+/report.md
+/private-report.md
+/cleanup-report.md
+/purge-report.md

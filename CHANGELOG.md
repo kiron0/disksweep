@@ -1,16 +1,19 @@
 # Changelog
 
-## Unreleased
+## 0.1.2 — 2026-11-07
 
-- Use Hopilo's Unbounded/Onest type pairing in the README cover, add Swipr's
-  skills.sh link below it, and clarify skill capabilities and response guidance.
-- Refresh the README with a local SVG cover, task-based commands, a platform
-  matrix, and expandable terminal instructions; organize the evaluation guide.
 - Add guided `start` workflows without implicit scans or permissions.
 - Add `explain` for exact saved findings, with optional private evidence.
 - Give scoped audits contextual review steps, partial-coverage warnings and
   protected-only guidance without implying current execution eligibility.
+- Clarify skill capability limits, command routing, and concise response guidance.
+- Redesign the README with Hopilo's Unbounded/Onest typography, task-based commands,
+  a platform matrix, expandable terminal instructions, and the official skills.sh
+  link. Organize the evaluation guide.
 - Clarify why skills.sh installations use the GitHub source name.
+- Expand ignore rules for private state, local reports, environments, caches, and
+  generated files. Remove the unused editable cover and move release-only notes
+  outside the installable skill assets.
 
 ## 0.1.1 — 2026-11-07
 
