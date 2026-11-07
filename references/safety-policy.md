@@ -11,7 +11,8 @@ are three separate gates. No confidence score overrides any gate.
   roots and restrictions take priority; other drives/profiles require separate scope.
 - Do not traverse symlinks, junctions, reparse points, or nested mounts. POSIX scans pin
   directory handles. Windows metadata traversal is best effort; content hashing and moves
-  are disabled there. Same-device bind mounts are separately checked on Linux.
+  use a separate approved NTFS-handle protocol there; POSIX hashing/moves remain
+  disabled on Windows. Same-device bind mounts are separately checked on Linux.
 - Prune credentials, repositories' VCS metadata, dependencies, virtual environments,
   backup folders, and recognized cloud directory names. Custom cloud roots, unusual
   backup names, and network mounts require user-supplied exclusions; autodetection is incomplete.
@@ -21,7 +22,7 @@ are three separate gates. No confidence score overrides any gate.
 
 ## Cleanup eligibility
 
-The only executable rule is `python-bytecode`: a CPython-tagged `.pyc` under
+The only POSIX executable catalog rule is `python-bytecode`: a CPython-tagged `.pyc` under
 `__pycache__`, a corresponding regular `.py` source, and an ancestor `pyproject.toml`,
 `setup.py`, or `setup.cfg` within scope. These markers are never executed or parsed.
 The object must be at least 24 hours old, owned by the current user, and have a single

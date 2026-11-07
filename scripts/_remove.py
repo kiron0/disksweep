@@ -100,6 +100,8 @@ def execute(request):
     while not parent.exists():
         parent = parent.parent
     core.absolute(parent); state.mkdir(mode=0o700, parents=True, exist_ok=True); core.absolute(state)
+    if os.path.lexists(state / ('remove-used-' + plan['id'] + '.json')):
+        raise FileExistsError('Removal plan already consumed; inspect records before another review')
     core.require(not any(core.inside(core.absolute(index[value]['path']), state) for value in selected), 'Removal cannot target its own operation records')
     core.require(shutil.disk_usage(state).free > 65536 + len(core.canonical(plan)) * 3, 'Insufficient space to journal removal')
     operation = {'id': secrets.token_hex(16), 'action': 'permanent-remove', 'plan_id': plan['id'], 'plan_digest': plan['digest'],

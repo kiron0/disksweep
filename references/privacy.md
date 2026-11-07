@@ -17,8 +17,10 @@ do not ask a save question at every stage. Durable reports, saved history/profil
 external sharing and uploads require their applicable separate consent.
 
 Private state uses 0700 directories, 0600 files, HMAC signatures, and no-overwrite writes
-on POSIX. Windows metadata audit is supported; secure signed state/execution is disabled
-until native ACL/handle protections exist. Store only a short approval note, never a full
+on POSIX. Windows metadata audit and exclusive-handle NTFS permanent removal are supported;
+POSIX HMAC state, quarantine and hashing are unavailable. Direct-removal approval
+binds the digest held in trusted host context to exact checked IDs and one-use
+private records. Store only a short approval note, never a full
 conversation. User preferences can define exclusions, never ongoing deletion permission.
 
 Docker auditing is optional and separately authorized: the configured Docker context

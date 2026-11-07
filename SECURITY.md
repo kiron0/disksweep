@@ -1,7 +1,8 @@
 # Security
 
 Swipr supports local audits, restricted bytecode quarantine, and a separate
-permanent-removal protocol for exact verified private bytecode quarantine. An
+permanent-removal protocol for exact verified private bytecode quarantine, plus
+digest-bound direct selected-file removal on Windows NTFS. An
 independent security audit has not been performed.
 Read references/safety-policy.md and references/recovery.md before enabling execution.
 
@@ -21,8 +22,14 @@ checks; concurrent final-name replacement triggers stop and best-effort non-over
 name restoration. Quiescent workloads are required. No guarantees apply to hostile
 concurrent writers; use a read-only audit or an externally managed snapshot instead.
 
-Windows direct execution and content hashing are unavailable in the current backend;
-native user-guided maintenance remains available.
+Windows content hashing and POSIX quarantine remain unavailable. Exact selected-file
+permanent removal is supported on local fixed-drive NTFS through exclusive handles.
+It requires current-user ownership, unchanged identity/change time, a displayed plan
+digest, fresh irreversible approval, exact selected IDs and one-use private intent.
+The host must retain the digest shown BEFORE approval; a plan file alone is not
+authorization. These records do not use the POSIX HMAC key. No recursion, shell
+interpolation, force or Recycle Bin is used; Swipr cannot undo the removal.
+See references/windows.md for the protocol and unsupported file types.
 OS/path detection cannot discover every custom cloud, backup, or network location.
 Use explicit exclusions. Reports and Docker metadata can contain private information.
 

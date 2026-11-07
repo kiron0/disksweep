@@ -65,8 +65,9 @@ backups, dependencies and application state without making them cleanup candidat
 
 ## Release boundary
 
-Executable deletion is deliberately narrow: only exact, previously verified private
-bytecode quarantine, with a new irreversible plan and approval. Other integrations
+POSIX executable deletion is limited to exact previously verified private bytecode
+quarantine, with a new irreversible plan and approval. Windows supports a separate
+digest-bound exact selected-file NTFS removal protocol with fresh irreversible approval. Other integrations
 provide operational audit and native user-guided maintenance. They do not acquire
 permission to delete arbitrary cache trees, backups, personal data, Docker volumes,
 or system state. Platform/tool failures degrade explicitly as required by the brief.

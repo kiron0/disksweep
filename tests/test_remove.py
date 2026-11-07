@@ -85,6 +85,22 @@ class WindowsRemoval(Fixture):
         self.assertTrue(self.first.exists())
         self.assertTrue(self.second.exists())
 
+    def test_expired_plan_does_not_remove_anything(self):
+        plan = self.plan()
+        with patch.object(removal.time, 'time', return_value=plan['expires_at'] + 1):
+            with self.assertRaises(core.Refusal):
+                removal.execute(self.request(plan))
+        self.assertTrue(self.first.exists())
+        self.assertFalse(self.state.exists())
+
+    def test_hard_linked_file_is_not_eligible(self):
+        os.link(self.first, self.root / 'retained-alias.bin')
+        inv = self.inventory()
+        entry = next(entry for entry in inv['entries'] if entry['path'] == str(self.first))
+        with self.assertRaises(core.Refusal):
+            removal.create_plan({'inventory': inv, 'candidate_ids': [entry['id']]})
+        self.assertTrue(self.first.exists())
+
     def test_exclusive_handle_rejects_locked_file(self):
         with windows.OpenFile(self.entries[0]):
             with self.assertRaises((core.Refusal, OSError)):

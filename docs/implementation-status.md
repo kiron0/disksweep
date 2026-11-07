@@ -16,7 +16,8 @@ operations the agent can perform locally.
 | Persistent signed policies and snapshots | Private local state | Session policies; persistent helper unavailable |
 | Bytecode quarantine, restoration, signed approval and journaling | Automated after exact approval | Native user-guided cleanup |
 | Permanent removal of verified private bytecode quarantine | Separate irreversible approval | Native user-guided cleanup |
-| Browser, package, Docker and system maintenance | Native user-guided cleanup | Native user-guided cleanup |
+| Exact selected-file permanent removal | Bytecode protocol only | Approved owned files on local NTFS |
+| Other browser, package, Docker and system maintenance | Native user-guided cleanup | Native user-guided cleanup |
 
 Default `start` performs a bounded current-user scan and analysis in one pass,
 then supplies review choices for the host's question UI. Terminal output lists
