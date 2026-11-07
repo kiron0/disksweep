@@ -3,6 +3,7 @@ import copy
 import os
 from pathlib import Path
 import time
+import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -41,8 +42,17 @@ class WindowsRemoval(Fixture):
         self.first, self.second = cache / 'first.bin', cache / 'second.bin'
         self.first.write_bytes(b'disposable first cache')
         self.second.write_bytes(b'disposable second cache')
+        self.own(self.root, recursive=True)
         self.inv = self.inventory()
         self.entries = [entry for entry in self.inv['entries'] if entry['path'] in (str(self.first), str(self.second))]
+
+    def own(self, path, recursive=False):
+        kernel, security = windows._api()
+        sid = windows._current_user(kernel, security)
+        arguments = ['icacls', str(path), '/setowner', '*' + sid]
+        if recursive:
+            arguments.append('/T')
+        subprocess.run(arguments, check=True, capture_output=True)
 
     def plan(self, **extra):
         return removal.create_plan({'inventory': self.inv, 'candidate_ids': [entry['id'] for entry in self.entries], **extra})
@@ -96,6 +106,7 @@ class WindowsRemoval(Fixture):
 
     def test_explicit_personal_selection_can_be_planned_but_never_removed_implicitly(self):
         path = self.root / 'selected-download.zip'; path.write_bytes(b'disposable download')
+        self.own(path)
         inv = self.inventory()
         entry = next(entry for entry in inv['entries'] if entry['path'] == str(path))
         plan = removal.create_plan({'inventory': inv, 'candidate_ids': [entry['id']], 'include_personal': True})

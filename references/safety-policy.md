@@ -60,3 +60,12 @@ Only purge_execute.py can permanently remove exact verified private bytecode qua
 using a separate signed irreversible approval. Arbitrary file deletion, recursive
 directory deletion, forced shutdown, elevation, Docker volume mutation, registry
 changes and arbitrary shell execution are excluded.
+
+## Windows direct-removal update (0.1.3)
+
+Windows additionally supports exact approved permanent removal on local NTFS.
+The full scan prepares eligible recognized files for one irreversible choice;
+submitting exact checked IDs and the previously displayed digest executes and
+verifies directly. No Settings UI, recursion, force, or raw shell fallback.
+See [Windows protocol](windows.md) for ownership, exclusive-handle, identity, protection and one-use intent gates.
+This is separate from the POSIX quarantine/purge protocol.

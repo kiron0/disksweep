@@ -35,5 +35,14 @@ Default interaction combines phases 1–4 without individual questions. Use one 
 choice prompt for the exact reviewed action, combine workload confirmation with
 quarantine approval when clearly labeled, and continue through verification after
 approval. Never require magic reply strings. Separate irreversible purge and changed
-plans still need a fresh prompt. On Windows, choosing native cleanup opens Storage
-Settings; the user confirms exact removal categories there.
+plans still need a fresh prompt. On Windows, the exact irreversible file choice executes direct NTFS removal,
+then verification, without opening Settings.
+
+## Windows direct-removal update (0.1.3)
+
+Windows additionally supports exact approved permanent removal on local NTFS.
+The full scan prepares eligible recognized files for one irreversible choice;
+submitting exact checked IDs and the previously displayed digest executes and
+verifies directly. No Settings UI, recursion, force, or raw shell fallback.
+See [Windows protocol](windows.md) for ownership, exclusive-handle, identity, protection and one-use intent gates.
+This is separate from the POSIX quarantine/purge protocol.

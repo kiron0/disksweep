@@ -64,6 +64,7 @@ class Overview(Fixture):
     def test_missing_secure_handles_does_not_offer_bytecode_cleanup(self):
         result = overview.run({'roots': [str(self.root)]})
         result['discovery']['capabilities']['quarantine'] = False
+        result['discovery']['platform'] = 'linux'
         self.assertEqual(overview.review_prompt(result)['options'][0]['id'], 'native_cleanup')
 
     def test_full_scan_command_saves_result_and_reuses_existing_review_inputs(self):

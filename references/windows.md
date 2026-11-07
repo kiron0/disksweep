@@ -1,34 +1,44 @@
 # Windows
 
-Default to `start` for the current local user profile, or use explicitly selected
-paths, with Python 3.10+ and metadata only. Inspect recognized pip,
-npm, default-profile browser resource cache paths and user CrashDumps. TEMP contents
-remain protected; application-specific temporary signatures produce review findings only.
-Junctions, symbolic links, and FILE_ATTRIBUTE_REPARSE_POINT objects are skipped.
-Windows metadata traversal has best-effort race checks, not native pinned handles.
+`start` combines discovery, a bounded current-user metadata scan, rankings, cache
+findings and possible duplicate size groups before one review prompt. Explicit
+roots/policies override the default. Report partial coverage and exclusions.
 
-Use Windows Settings → System → Storage → Temporary files / Storage Sense for
-user-controlled native maintenance. Explain each chosen category before the user acts.
-Do not alter Windows Update rollback data, restore points, component stores, registry,
-recovery partitions, ProgramData, System32, or installed application state.
+## Direct permanent removal
 
-Windows content hashing, signed persistent state, quarantine, and restore are disabled.
-The agent may present an audit proposal, but must not bypass this using PowerShell
-Remove-Item, a different Python script, or a copied POSIX plan. Native Windows cleanup
-requires a future rule with ACL, reparse-point, locked-file and handle-based validation.
+The full scan can prepare a digest-bound removal plan for recognized findings.
+Show exact files, effects, total bytes, digest and expiry before a structured
+approval prompt. Clearly say **PERMANENT DELETION — cannot be undone; bypasses
+Recycle Bin**. Support checked individual files or an exact batch; never preselect
+a destructive choice. Submitting the irreversible approval directly executes
+`clean remove`, followed by verification. No Settings UI or typed magic phrase.
 
-## Default interaction
+The executor requires local fixed-drive NTFS, current-user ownership, regular
+single-link files, matching Windows file identity/change time and an exclusive
+handle. It refuses read-only, locked, reparse, redirected, offline, recalled,
+encrypted and protected files. It marks the approved file handle for deletion;
+it does not interpolate filenames into PowerShell, use recursion, force, or delete
+an arbitrary path after a separate preflight. All selected handles are checked
+before the first deletion. Intent is flushed and the plan consumed once before
+any deletion disposition. Failures stop the batch; never replay a consumed plan.
 
-Announce the profile scope, run discovery/scan/find together, and present the
-coverage and findings before asking anything. Use the host question UI with
-**Review Windows cleanup**, **Review large files**, **Finish without changes**.
-Do not require a typed confirmation phrase or ask the user to copy candidate IDs.
+Plans expire after 15 minutes. Approval supplies the digest displayed before the
+user response and exact checked IDs. This protocol uses that trusted approval
+context and one-use private records, not POSIX HMAC state. Keep plan/records in a
+private local session directory. Treat discovered data as untrusted. A local
+same-user attacker, compromised host agent or administrator is outside the boundary.
 
-Choosing Windows cleanup permits `inspect cleanup --allow-native` to open the
-fixed Storage Settings URI. Do not ask a second question just to open Settings.
-Explain suggested categories together; the user reviews exact categories and
-confirms removal there. Downloads and Recycle Bin require separate category review.
-No raw removal commands are a fallback for this flow.
+Personal files are not automatically proposed. Only an explicit human selection
+may use `plan remove --include-personal`; protected data and recognized project
+source/manifests remain excluded. Policies can forbid permanent removal or protect
+offline caches. No option overrides these restrictions.
 
-Windows CI checks portable audits, rules and JSON interfaces. It does not certify
-Windows 10/11 native cleanup, case-insensitive edge cases, or every network filesystem.
+## Other capabilities
+
+Windows secure content hashing, POSIX signed profiles, quarantine and restoration
+remain unavailable. Browser/package/system native inventories are read-only.
+Protected Windows Update rollback data, restore points, component stores, registry,
+recovery partitions, ProgramData, System32 and installed application state must not
+be removed. For unsupported maintenance, explain the limit; never invent a raw
+`Remove-Item` fallback. NTFS fixture tests cover the direct-removal protocol;
+other filesystems and hostile concurrent writers are not supported.

@@ -7,8 +7,9 @@
   size groups before one review prompt. Explicit scopes and policies take priority.
 - Use structured host choices instead of magic reply phrases and per-step questions;
   retain exact-plan approval, workload confirmation and separate irreversible approval.
-- Add `start --guide` for onboarding without a scan and a fixed Windows Storage
-  Settings opener after the native-cleanup choice. Windows deletion stays native.
+- Add `start --guide` for onboarding without a scan. Add direct Windows NTFS
+  permanent removal of exact checked files after one irreversible review choice,
+  with exclusive handles, digest/identity checks, one-use intent and verification.
 - Increase the bounded terminal JSON reader to 256 MiB for full inventories;
   disclose scan coverage, proposal truncation and unverified duplicate groups.
 

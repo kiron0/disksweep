@@ -20,9 +20,8 @@ operations the agent can perform locally.
 
 Default `start` performs a bounded current-user scan and analysis in one pass,
 then supplies review choices for the host's question UI. Terminal output lists
-those choices without implementing a separate interactive UI. Windows can open
-the fixed Storage Settings page after the native-cleanup choice; the user reviews
-categories and confirms removal in Windows itself. It cannot delete files directly.
+those choices without implementing a separate interactive UI. Windows can execute exact checked-file permanent removal after its irreversible
+approval choice; unsupported system maintenance remains user-guided.
 
 ## What the checks establish
 
@@ -40,3 +39,12 @@ individual host-agent certification, or precise clone/snapshot-aware physical sa
 
 The original document's v0.1–v1.0 milestones describe development stages, not the
 release numbering. This project's first published stable version is 0.1.0.
+
+## Windows direct-removal update (0.1.3)
+
+Windows additionally supports exact approved permanent removal on local NTFS.
+The full scan prepares eligible recognized files for one irreversible choice;
+submitting exact checked IDs and the previously displayed digest executes and
+verifies directly. No Settings UI, recursion, force, or raw shell fallback.
+See [Windows protocol](../references/windows.md) for ownership, exclusive-handle, identity, protection and one-use intent gates.
+This is separate from the POSIX quarantine/purge protocol.

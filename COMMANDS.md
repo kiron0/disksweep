@@ -39,11 +39,11 @@ There is no separate `swipr` executable or npm package to install.
 | `scan` | `full`, `quick`, `deep`, `developer`, `emergency`, `targeted`, `health`, `safe-cleanup`, `custom` | Scoped read-only audit |
 | `find` | `large`, `directories`, `duplicates` | Discover storage consumers |
 | `explain` | `--input AUDIT_JSON --candidate FULL_ID` | Explain saved findings without rescanning |
-| `inspect` | `apps`, `storage`, `docker`, `activity`, `leftovers`, `trash`, `recycle-bin`, `cleanup` | Inspect metadata or open Windows cleanup Settings |
-| `plan` | `create`, `purge`, `show`, `validate` | Prepare and review exact plans |
+| `inspect` | `apps`, `storage`, `docker`, `activity`, `leftovers`, `trash`, `recycle-bin` | Inspect native and protected metadata |
+| `plan` | `remove`, `create`, `purge`, `show`, `validate` | Prepare and review exact plans |
 | `approve` | `quarantine`, `purge` | Record fresh, explicit approval |
-| `clean` | `quarantine`, `restore`, `purge` | Run supported approved actions |
-| `verify` | `--kind quarantine` or `--kind purge` | Verify an operation |
+| `clean` | `remove`, `quarantine`, `restore`, `purge` | Run supported approved actions |
+| `verify` | `--kind quarantine`, `--kind purge`, `--kind remove` | Verify an operation |
 | `report` | `audit`, `operation` | Produce Markdown reports |
 | `history` | `save`, `show`, `compare`, `operations` | Private snapshots and operation records |
 | `profile` | `validate`, `save`, `show` | Restrictive preferences |
@@ -80,15 +80,42 @@ any supported exact plan before its actual approval prompt, then executes and
 verifies without asking again for every internal step. The terminal adapter
 prints choices; it does not create interactive agent widgets by itself.
 
-Windows offers native cleanup, large-file review, or finishing. After choosing
-native cleanup, the agent can open the fixed Storage Settings page:
+Windows offers direct permanent removal when an eligible plan is available,
+large-file review, or finishing. The host displays the exact plan and permanent
+warning before accepting checked file IDs or a batch choice. Submit approval once;
+execution and verification follow without another confirmation or opening Settings.
+No destructive choice should be preselected. If no eligible plan exists, offer
+review/finish without inventing a removal action.
+
+## Direct Windows removal
+
+The full audit contains `removal_plan` for eligible unlocked recognized findings.
+Alternatively prepare a specific selection:
 
 ```sh
-python scripts/swipr.py inspect cleanup --allow-native
+python scripts/swipr.py plan remove --input audit.json --candidate FULL_ID --output remove-plan.json
 ```
 
-This opens `ms-settings:storagesense`; it removes nothing. Review categories and
-confirm removal in Windows Settings. Swipr does not provide direct Windows deletion.
+Use `--include-personal` only for files explicitly selected by the human; it never
+permits protected data or recognized project source. `--policy FILE` applies
+restrictions, including no permanent deletion and offline-cache preservation.
+
+After the exact selected files, effects, digest and expiry are displayed, and the
+user submits an explicit **permanent deletion, cannot undo** choice:
+
+```sh
+python scripts/swipr.py clean remove --input audit.json --digest DISPLAYED_DIGEST --candidate FIRST_CHECKED_ID --candidate SECOND_CHECKED_ID --confirm-permanent --state-dir "/path/to/private-records" --output removed.json
+python scripts/swipr.py verify --kind remove --state-dir "/path/to/private-records" --operation-id OPERATION_ID
+```
+
+`--input` accepts the full audit containing `removal_plan`, or a standalone plan.
+Only supplied checked IDs are removed. A plan can be consumed once and expires in
+15 minutes. Use the digest shown before approval, never a newly reread/edited digest.
+Local fixed-drive NTFS, current-user ownership, regular single-link files and
+exclusive handles are required. No wildcards, directories, recursion, force,
+Recycle Bin or undo. Locked, changed, protected or unsupported files stop execution.
+Private operation/attempt records precede deletion. See the Windows reference for
+trust boundaries. POSIX continues to use its bytecode quarantine/purge workflow.
 
 ## Help and capability discovery
 

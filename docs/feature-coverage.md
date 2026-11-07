@@ -74,3 +74,12 @@ or system state. Platform/tool failures degrade explicitly as required by the br
 Tests cover engine behavior and native adapters using fixtures. Independent security
 review, every native app/version, hardware combination, filesystem clone mechanism,
 and live behavior of each host agent are not asserted by this coverage map.
+
+## Windows direct-removal update (0.1.3)
+
+Windows additionally supports exact approved permanent removal on local NTFS.
+The full scan prepares eligible recognized files for one irreversible choice;
+submitting exact checked IDs and the previously displayed digest executes and
+verifies directly. No Settings UI, recursion, force, or raw shell fallback.
+See [Windows protocol](../references/windows.md) for ownership, exclusive-handle, identity, protection and one-use intent gates.
+This is separate from the POSIX quarantine/purge protocol.
