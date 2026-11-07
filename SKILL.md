@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires a local agent with filesystem tools and Python 3.10+. Metadata audits support macOS, Windows, and Linux. Secure duplicate hashing and bytecode quarantine/purge require POSIX directory handles. Windows supports metadata audits and digest-bound permanent removal of selected owned files on local NTFS; content hashing and quarantine are unavailable.
 metadata:
   author: Toufiq Hasan Kiron
-  version: "0.1.3"
+  version: "0.1.4"
 ---
 
 # Swipr
@@ -91,6 +91,15 @@ After a command, summarize findings, limits, and the next applicable command
 using real IDs/digests from that result. Never invent IDs or auto-chain approval.
 
 ## Keep messages factual and brief
+
+Resolve this invocation from its selected installed directory. `doctor` reports the
+active runtime version and directory; do not mix an older global skill with newer
+project-local helpers. A disk-space query denial does not prove file traversal is
+denied. Report the failed stage and continue permitted read-only work; never blame
+a relative path from a generic error. Host sandbox access differs from administrator
+elevation: request only necessary scoped access if traversal is actually blocked.
+Do not retry a cleanup under broader permissions without the applicable approval.
+
 
 - Lead with what ran, its authorized scope, and whether coverage is complete or partial.
   For `start --guide`, `help`, or unavailable local tools, say that no scan ran.

@@ -230,8 +230,25 @@
             "minimum": 0
           },
           "free": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "minimum": 0
+          },
+          "total": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "space_status": {
+            "enum": [
+              "available",
+              "permission-denied",
+              "unavailable"
+            ]
           }
         },
         "required": [

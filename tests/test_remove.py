@@ -101,6 +101,31 @@ class WindowsRemoval(Fixture):
             removal.create_plan({'inventory': inv, 'candidate_ids': [entry['id']]})
         self.assertTrue(self.first.exists())
 
+    def test_denied_journal_space_query_never_reaches_deletion(self):
+        plan = self.plan()
+        with patch.object(removal.shutil, 'disk_usage', side_effect=PermissionError('fixture denial')), patch.object(windows, 'mark_for_removal') as deleted:
+            with self.assertRaises(PermissionError):
+                removal.execute(self.request(plan))
+            deleted.assert_not_called()
+        self.assertTrue(self.first.exists())
+        self.assertTrue(self.second.exists())
+
+    def test_post_removal_space_denial_keeps_verified_result(self):
+        plan = self.plan()
+        selected = next(entry['id'] for entry in self.entries if entry['path'] == str(self.first))
+        real_usage = removal.shutil.disk_usage
+        def measured(path):
+            if not self.first.exists():
+                raise PermissionError('fixture post-removal denial')
+            return real_usage(path)
+        with patch.object(removal.shutil, 'disk_usage', side_effect=measured):
+            result = removal.execute(self.request(plan, [selected]))
+        self.assertTrue(result['all_verified'])
+        self.assertIsNone(result['after_free'])
+        self.assertIsNone(result['observed_free_delta'])
+        self.assertEqual(result['volume_space'][0]['root'], self.first.anchor)
+        self.assertIn('after: unknown', core.human_report({'operation': result, 'plan': plan})['markdown'])
+
     def test_exclusive_handle_rejects_locked_file(self):
         with windows.OpenFile(self.entries[0]):
             with self.assertRaises((core.Refusal, OSError)):

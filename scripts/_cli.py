@@ -365,9 +365,11 @@ def main(argv=None):
     if args.route == "help":
         root.parse_args([*args.topic, "--help"]); return 0
     output = None
+    stage = 'output creation' if args.output else 'command execution'
     try:
         if args.output:
             output = reserve_output(args.output)
+        stage = 'command execution'
         result = dispatch(args)
         encoded = json.dumps({"ok": True, "result": result}, ensure_ascii=True)
         text = result.get("markdown") if isinstance(result, dict) else None
@@ -380,7 +382,8 @@ def main(argv=None):
         elif args.route == "doctor":
             caps = result["capabilities"]
             display = "\n".join(["Swipr " + core.VERSION, "System: " + result["platform"] + " " + result["os_version"],
-                                 f"Storage: {result['disk']['free']} bytes available of {result['disk']['total']}",
+                                 f"Active installation: {result['installation']['directory']}",
+                                 (f"Storage: {result['disk']['free']} bytes available of {result['disk']['total']}" if result['disk']['free'] is not None else 'Storage: unknown (' + result['disk']['status'] + '); metadata scans can still run where access is available'),
                                  "Metadata audit: available", "Content hashing: " + ("available" if caps["content_hashing"] else "unavailable"),
                                  "Bytecode quarantine/purge: " + ("available with exact approval" if caps["quarantine"] else "native guidance only"),
                                  "Next: scan quick --root PATH. Use --json for complete discovery metadata."])
@@ -399,14 +402,18 @@ def main(argv=None):
         else:
             display = text or json.dumps(result, ensure_ascii=True, indent=2)
         if output:
+            stage = 'result saving'
             output.write(text if args.route == "report" and not args.json else encoded + "\n")
             output.flush(); os.fsync(output.fileno())
         print(display)
         return 0
     except (core.Refusal, OSError, ValueError, KeyError, TypeError, OverflowError) as error:
-        code = "REFUSED" if isinstance(error, core.Refusal) else "ALREADY_EXISTS" if isinstance(error, FileExistsError) else "INVALID_OR_UNAVAILABLE"
-        message = str(error) if isinstance(error, core.Refusal) else "Invalid request, inaccessible filesystem, or existing output. Inspect journals before retrying changes."
-        encoded = json.dumps({"ok": False, "error": {"code": code, "message": message}})
+        code = "REFUSED" if isinstance(error, core.Refusal) else "ALREADY_EXISTS" if isinstance(error, FileExistsError) else 'PERMISSION_DENIED' if isinstance(error, PermissionError) else 'NOT_FOUND' if isinstance(error, FileNotFoundError) else "INVALID_OR_UNAVAILABLE"
+        message = str(error) if isinstance(error, core.Refusal) else ('Permission denied during ' + stage + '. Check scoped host filesystem/sandbox access; do not automatically retry changes.' if isinstance(error, PermissionError) else 'Output or one-use operation record already exists; inspect its status before retrying.' if isinstance(error, FileExistsError) else 'Required filesystem object was not found during ' + stage + '.' if isinstance(error, FileNotFoundError) else 'Invalid request or unavailable filesystem during ' + stage + '. Inspect operation records before retrying changes.')
+        detail = {'code': code, 'message': message, 'stage': stage}
+        if isinstance(getattr(error, 'winerror', None), int):
+            detail['winerror'] = error.winerror
+        encoded = json.dumps({"ok": False, "error": detail})
         if output:
             with contextlib.suppress(OSError):
                 output.write(encoded + "\n"); output.flush()

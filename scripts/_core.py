@@ -27,7 +27,7 @@ import subprocess
 import time
 from collections import defaultdict
 
-VERSION = "0.1.3"
+VERSION = "0.1.4"
 BASE = Path(__file__).resolve().parent.parent
 KINDS = {"SAFE-CANDIDATE", "REVIEW", "PROTECTED", "UNSUPPORTED"}
 PRUNE = {".git", ".svn", ".hg", ".ssh", ".aws", ".gnupg", ".azure",
@@ -184,6 +184,16 @@ def classify(path, root, info, rules, exclusions=()):
     return None, "PROTECTED", None
 
 
+def disk_metadata(path):
+    """Optional read-only volume measurements; failure never means zero free space."""
+    try:
+        usage = shutil.disk_usage(path)
+        return {'total': usage.total, 'used': usage.used, 'free': usage.free, 'status': 'available'}
+    except OSError as error:
+        return {'total': None, 'used': None, 'free': None,
+                'status': 'permission-denied' if isinstance(error, PermissionError) else 'unavailable'}
+
+
 def probe(request):
     home = Path.home()
     pid = platform_id()
@@ -196,7 +206,14 @@ def probe(request):
              "windows": [Path(os.environ.get("LOCALAPPDATA", home / "AppData/Local")) / p
                          for p in ("pip/Cache", "npm-cache/_cacache", "Google/Chrome/User Data", "Microsoft/Edge/User Data")]}
     selected = Path(request.get("path", home))
-    usage = shutil.disk_usage(selected)
+    disk = disk_metadata(selected)
+    suggestions = []
+    for path in roots.get(pid, []):
+        try:
+            if path.is_dir():
+                suggestions.append(str(path))
+        except OSError:
+            pass
     mounts = []
     if pid == "linux":
         try:
@@ -209,11 +226,12 @@ def probe(request):
     tools = {name: bool(shutil.which(name)) for name in ("python3", "node", "npm", "pnpm", "yarn", "bun", "pip", "cargo", "rustc", "go", "dotnet", "gradle", "mvn", "docker", "brew", "xcodebuild")}
     return {"version": VERSION, "platform": pid, "os_version": platform.release(),
             "current_user": getpass.getuser(),
-            "home": str(home), "disk": {"total": usage.total, "used": usage.used, "free": usage.free},
+            "home": str(home), "disk": disk,
+            'installation': {'version': VERSION, 'directory': str(BASE)},
             "access": {"read": os.access(selected, os.R_OK), "write": os.access(selected, os.W_OK), "administrator_requested": False},
             "backup_snapshot_tools": {name: bool(shutil.which(name)) for name in ("tmutil", "diskutil", "btrfs", "zfs", "vssadmin", "wbadmin")},
             "mounts": mounts, "tools": tools,
-            "suggested_roots": [str(x) for x in roots.get(pid, []) if x.is_dir()],
+            "suggested_roots": suggestions,
             "capabilities": {"metadata": True,
                              "content_hashing": os.name == "posix" and os.open in os.supports_dir_fd,
                              "quarantine": os.name == "posix" and os.open in os.supports_dir_fd,
@@ -244,11 +262,13 @@ def scan(request):
     depth = min(max(int(request.get("max_depth", 12)), 0), 64)
     started = time.monotonic()
     entries, issues, seen, count = [], [], set(), 0
+    devices = {}
     complete = True
     for root in roots:
         require(root.is_dir() and (metadata_only or not protected(root, exclusions)), "Scan root is protected or not a directory")
         require(not any(inside(root, Path(x)) for x in exclusions), "Scan root is excluded")
         rootdev = root.stat().st_dev
+        devices[str(root)] = rootdev
         stack = [(root, 0)]
         while stack:
             directory, level = stack.pop()
@@ -309,7 +329,13 @@ def scan(request):
                             issues.append({"path": str(path), "reason": "unreadable-or-changed"}); complete = False
             except (OSError, Refusal):
                 issues.append({"path": str(directory), "reason": "unreadable-or-changed"}); complete = False
-    disks = [{"root": str(r), "device": r.stat().st_dev, "free": shutil.disk_usage(r).free} for r in roots]
+    disks = []
+    for root in roots:
+        measurement = disk_metadata(root)
+        disks.append({'root': str(root), 'device': devices[str(root)], 'free': measurement['free'],
+                      'total': measurement['total'], 'space_status': measurement['status']})
+        if measurement['status'] != 'available':
+            issues.append({'path': str(root), 'reason': 'disk-space-' + measurement['status']})
     for issue in issues:
         issue["classification"] = "PROTECTED" if issue["reason"] == "protected" else "UNSUPPORTED"
     return {"schema_version": 1, "version": VERSION, "created_at": now(), "roots": list(map(str, roots)),
@@ -698,6 +724,8 @@ def human_report(request):
         lines.append(f"| {kind} | {summary['count']} | {summary['logical_bytes']} | {summary['allocated_bytes_known']} |")
     lines += ["", "Sizes count hard-linked inodes once. Shared blocks, clones, compression, snapshots and open files make physical savings uncertain.",
               "Quarantine's estimated immediate free-space increase is **0 bytes**.", "", "| Item | Logical bytes | Classification | Mechanism |", "|---|---:|---|---|"]
+    if any(disk.get('free') is None for disk in inventory['disks']):
+        lines.insert(7, 'Disk space: unknown for some roots; volume measurements were unavailable. File traversal coverage is reported separately.')
     for entry in sorted(inventory["entries"], key=lambda x: x["logical_bytes"], reverse=True)[:30]:
         lines.append(f"| {location(entry)} | {entry['logical_bytes']} | {entry['classification']} | {entry['strategy']} |")
     if request.get('include_next', True):

@@ -138,6 +138,12 @@
       "prompt": "Show start --guide without scanning anything.",
       "expected_behavior": "Show guidance only. Do not run doctor, scan the profile, create state, or ask a cleanup approval question.",
       "files": []
+    },
+    {
+      "id": 24,
+      "prompt": "Windows denies the disk-space query with WinError 5, but these folders are readable.",
+      "expected_behavior": "Continue permitted read-only metadata work and report space/pressure as unknown. Do not blame relative output paths or infer all traversal is denied. Distinguish failed stages and active installation. Request scoped host access only if required; never weaken deletion journal/approval/identity checks.",
+      "files": []
     }
   ]
 }

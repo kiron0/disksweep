@@ -35,7 +35,7 @@ def policy(value):
 def operation_report(request):
     result, plan = request["operation"], request["plan"]
     core.require("verified_at" in result and "all_verified" in result, "Verify the operation before generating a final cleanup report")
-    core.require(isinstance(result["all_verified"], bool) and all(type(result[k]) is int for k in ("before_free", "after_free", "observed_free_delta")), "Invalid verification or storage measurements")
+    core.require(isinstance(result["all_verified"], bool) and all(result[k] is None or type(result[k]) is int for k in ("before_free", "after_free", "observed_free_delta")), "Invalid verification or storage measurements")
     core.require(result["plan_id"] == plan["id"], "Report plan and operation do not match")
     entries = plan.get("entries", plan.get("items", []))
     approved = {e.get("id", e.get("candidate_id")) for e in entries}
@@ -55,7 +55,7 @@ def operation_report(request):
     lines = ["# Swipr Cleanup Report", "", "Operation: " + result["id"],
              "Status: " + ("verified" if result["all_verified"] else "partial or verification incomplete"),
              "", f"Approved: {len(approved)}; processed: {len(successful)}; verified: {verified}; failed: {failed}; unattempted: {len(approved - attempted)}.",
-             f"Available bytes before: {result['before_free']}; after: {result['after_free']}; observed delta: {result['observed_free_delta']}.",
+             f"Available bytes before: {result['before_free'] if result['before_free'] is not None else 'unknown'}; after: {result['after_free'] if result['after_free'] is not None else 'unknown'}; observed delta: {result['observed_free_delta'] if result['observed_free_delta'] is not None else 'unknown'}.",
              "Observed changes include journal writes and unrelated activity; shared blocks and snapshots can limit physical recovery.", "",
              "| Candidate ID | Status |", "|---|---|"]
     lines += [f"| {x['candidate_id']} | {x['status']} |" for x in result["items"]]
@@ -137,7 +137,7 @@ def compare(request):
     disks = {(x["root"], x["device"]): x["free"] for x in before["disks"]}
     return {"schema_version": 1, "added": [new[p]["id"] for p in new.keys() - old.keys()],
             "removed": [old[p]["id"] for p in old.keys() - new.keys()], "changed": changed,
-            "available_space_deltas": [{"root": x["root"], "observed_delta": x["free"] - disks[(x["root"], x["device"])]}
+            "available_space_deltas": [{"root": x["root"], "observed_delta": x["free"] - disks[(x["root"], x["device"])] if x['free'] is not None and disks[(x['root'], x['device'])] is not None else None}
                                        for x in after["disks"] if (x["root"], x["device"]) in disks],
             "coverage_complete": before["complete"] and after["complete"], "changes_made": False,
             "log_growth": [x for x in changed if x["category"] == "diagnostics" and x["logical_delta"] > 0],
@@ -205,12 +205,12 @@ def enrich_analysis(inventory, request):
             projects.append(finding)
     health = []
     for disk in inventory["disks"]:
-        try:
-            usage = core.shutil.disk_usage(disk["root"])
-            ratio = usage.free / usage.total if usage.total else 0
-            health.append({"root": disk["root"], "free_bytes": usage.free, "free_ratio": ratio,
+        measurement = disk if 'total' in disk else core.disk_metadata(disk['root'])
+        if measurement.get('free') is not None and measurement.get('total'):
+            ratio = measurement['free'] / measurement['total']
+            health.append({"root": disk["root"], "free_bytes": measurement['free'], "free_ratio": ratio,
                            "storage_pressure": "critical" if ratio < .03 else "low-free-space" if ratio < .1 else "normal"})
-        except OSError:
+        else:
             health.append({"root": disk["root"], "storage_pressure": "unknown"})
     return {"ranked_files": sort_entries(entries, sort_by)[:min(max(int(request.get("top", 20)), 1), 100)],
             "directories": directories[:100], "project_artifacts": projects, "health": health,

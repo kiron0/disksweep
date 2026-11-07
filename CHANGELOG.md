@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.4 — 2026-11-08
+
+- Continue read-only discovery, inventory, analysis and comparison when volume-space
+  queries are denied; report unknown measurements without losing collected files.
+- Distinguish permission, missing-file and existing-output errors by failed stage,
+  retain sanitized Windows error numbers, and report the active installation.
+- Measure Windows removal space on target volumes, preserve verified outcomes when
+  optional post-removal queries fail, and keep journal-space checks mandatory.
+  No permission bypass or automatic retry.
+
 ## 0.1.3 — 2026-11-07
 
 - Make `start` and the new `scan full` combine discovery, current-user metadata

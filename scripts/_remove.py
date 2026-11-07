@@ -111,12 +111,14 @@ def execute(request):
     if os.path.lexists(state / ('remove-used-' + plan['id'] + '.json')):
         raise FileExistsError('Removal plan already consumed; inspect records before another review')
     core.require(not any(core.inside(core.absolute(index[value]['path']), state) for value in selected), 'Removal cannot target its own operation records')
-    core.require(shutil.disk_usage(state).free > 65536 + len(core.canonical(plan)) * 3, 'Insufficient space to journal removal')
+    journal_space = shutil.disk_usage(state).free
+    core.require(journal_space > 65536 + len(core.canonical(plan)) * 3, 'Insufficient space to journal removal')
+    volume_roots = sorted({Path(index[value]['path']).anchor for value in selected})
+    before_space = {root: core.disk_metadata(root)['free'] for root in volume_roots}
     operation = {'id': secrets.token_hex(16), 'action': 'permanent-remove', 'plan_id': plan['id'], 'plan_digest': plan['digest'],
                  'created_at': core.now(), 'selected_ids': selected, 'plan': plan, 'irreversible': True}
     # One-use, flushed intent precedes any delete disposition. A crash never grants a retry.
     _save(state / ('remove-used-' + plan['id'] + '.json'), operation)
-    before = shutil.disk_usage(state).free
     items = []
     with contextlib.ExitStack() as stack:
         opened_files = []
@@ -142,12 +144,18 @@ def execute(request):
             items.append(item)
             if item['status'] == 'failed-stop':
                 break
+    volume_space = []
+    for root in volume_roots:
+        before, after = before_space[root], core.disk_metadata(root)['free']
+        volume_space.append({'root': root, 'before_free': before, 'after_free': after,
+                             'observed_free_delta': after - before if before is not None and after is not None else None})
+    measured = volume_space[0] if len(volume_space) == 1 else {'before_free': None, 'after_free': None, 'observed_free_delta': None}
     result = {**{key: value for key, value in operation.items() if key != 'plan'}, 'items': items,
-              'before_free': before, 'after_free': shutil.disk_usage(state).free,
+              'before_free': measured['before_free'], 'after_free': measured['after_free'],
+              'observed_free_delta': measured['observed_free_delta'], 'volume_space': volume_space,
               'all_verified': len(items) == len(selected) and all(item['verified_absent'] for item in items),
               'changes_made': any(item.get('deletion_requested') for item in items), 'verified_at': core.now(),
               'warning': 'Permanent removal has no Swipr undo. Free-space changes can include unrelated activity.'}
-    result['observed_free_delta'] = result['after_free'] - before
     _save(state / ('remove-result-' + operation['id'] + '.json'), result)
     return result
 

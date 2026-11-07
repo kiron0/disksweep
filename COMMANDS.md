@@ -324,6 +324,26 @@ python scripts/swipr.py catalog list --platform linux
 python scripts/swipr.py catalog list --category package-cache --json
 ```
 
+## Windows access diagnostics
+
+`doctor --json` reports the active runtime version and installation directory.
+A project-local installation and an older global installation can coexist; use
+helpers from the directory selected for this invocation. Updating one scope does
+not implicitly update the other.
+
+Unavailable volume queries return null space values and `permission-denied` or
+`unavailable` status. Readable file inventories, rankings, health and comparisons
+continue; unknown space is never zero. File traversal completeness is separate
+from availability of volume measurements. Windows operation space figures refer
+to each target volume, not the journal drive; multi-volume totals remain unknown.
+
+Permission errors identify output creation, command execution or result saving,
+with a sanitized Windows error number when available. Do not assume a relative
+path is the cause. Request only necessary scoped host/sandbox access if traversal
+is blocked. The skill cannot bypass host restrictions. Deletion still requires a
+successful journal-space check and all existing approval and identity gates.
+A denied optional measurement after deletion cannot discard its verified result.
+
 ## Results and errors
 
 Terminal JSON input is bounded at 256 MiB to support full inventories. Internal
