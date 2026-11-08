@@ -34,8 +34,8 @@ This repository is also a Claude Code plugin marketplace:
 
 Claude Code 2.1.275 or later can install in one step with
 `/plugin install swipr --marketplace kiron0/swipr`. Update with
-`/plugin marketplace update swipr`. Plugin skills are namespaced, so start with
-`/swipr:swipr start`.
+`/plugin marketplace update swipr`. Start with `/swipr start`. If another
+command already uses the name `swipr`, use the namespaced `/swipr:swipr start`.
 
 **Requirements:** Node.js 22.20+ for installation, Python 3.10+ for helpers,
 and an AI agent with local filesystem access.
