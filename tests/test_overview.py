@@ -96,6 +96,9 @@ class Overview(Fixture):
         result['removal_plan'] = None
         question = overview.review_prompt(result)
         self.assertFalse(any(option['id'] == 'remove_selected' for option in question['options']))
+        self.assertEqual(question['options'][0]['id'], 'native_cleanup')
+        self.assertEqual(question['options'][0]['label'], 'Review Windows cleanup')
+        self.assertEqual(len(question['options']), 3)
 
 
 if __name__ == '__main__':

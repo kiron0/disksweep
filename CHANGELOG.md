@@ -11,6 +11,15 @@
   `.claude-plugin/marketplace.json` and `.claude-plugin/plugin.json`, so
   `/plugin marketplace add kiron0/swipr` and `/plugin install swipr@swipr` work.
   Project validation keeps both manifest versions equal to the skill version.
+- Speed up scanning and analysis about tenfold: indexed rule-signature matching,
+  component-prefix scope checks, cached rule catalogs, no mount probe for regular
+  files, per-directory project-marker caching and a linear duplicate reference lookup.
+  A 50,000-file audit dropped from about 50 to 4.5 seconds on the test machine.
+- Project build-artifact analysis now covers up to 100,000 entries, matching the full
+  scan limit, instead of reporting partial analysis after 20,000.
+- Refuse a reused quarantine approval with "Approval already used" before revalidating
+  the plan, instead of a misleading changed-file error.
+- Offer native cleanup review on Windows when no permanent-removal plan is available.
 
 ## 0.1.4 — 2026-11-08
 

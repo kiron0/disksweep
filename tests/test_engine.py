@@ -242,6 +242,35 @@ class ExecutionTests(Fixture):
         with self.assertRaises((core.Refusal, FileNotFoundError, FileExistsError)):
             self.execute(plan, receipt)
         self.assertTrue((self.state / ("used-" + receipt["id"] + ".json")).exists())
+        with self.assertRaisesRegex(core.Refusal, "Approval already used"):
+            self.execute(plan, receipt)
+
+    def test_rule_catalog_reads_are_isolated_copies(self):
+        first = core.read_rules()
+        first[0]["signatures"].append("tampered/path")
+        first[0]["id"] = "tampered"
+        second = core.read_rules()
+        self.assertNotEqual(second[0]["id"], "tampered")
+        self.assertNotIn("tampered/path", second[0]["signatures"])
+        self.assertEqual(core.digest(second), core.digest(core.read_rules()))
+
+    def test_signature_matching_keeps_rule_order_and_whole_components(self):
+        rules = [{"id": "first", "platforms": [core.platform_id()], "signatures": ["Library/Caches/*"]},
+                 {"id": "second", "platforms": [core.platform_id()], "signatures": ["Caches/pip"]}]
+        info = {"links": 1}
+        rule, kind, evidence = core.classify(Path("/home/me/Library/Caches/pip/f"), Path("/home/me"), info, rules)
+        self.assertEqual((rule["id"], kind, evidence["signature"]), ("first", "REVIEW", "Library/Caches/*"))
+        rule, kind, _ = core.classify(Path("/home/me/Caches/pip/f"), Path("/home/me"), info, rules)
+        self.assertEqual(rule["id"], "second")
+        rule, kind, _ = core.classify(Path("/home/me/Caches/pipx/f"), Path("/home/me"), info, rules)
+        self.assertIsNone(rule)
+        self.assertEqual(kind, "PROTECTED")
+
+    def test_inside_compares_whole_components(self):
+        self.assertTrue(core.inside(Path("/a/b/c"), Path("/a/b")))
+        self.assertTrue(core.inside(Path("/a/b"), Path("/a/b")))
+        self.assertFalse(core.inside(Path("/a/bc"), Path("/a/b")))
+        self.assertFalse(core.inside(Path("/a"), Path("/a/b")))
 
     def test_symlink_replacement_after_approval(self):
         plan = self.plan(); receipt = self.approval(plan)
