@@ -46,9 +46,10 @@ class ReleaseDecision(unittest.TestCase):
                 self.assertEqual(self.decide(version, [])['release'], 'false')
 
     def test_version_is_read_from_the_runtime(self):
-        sys.path.insert(0, str(ROOT / 'scripts'))
-        import _core
-        self.assertEqual(release_check.read_version(ROOT), _core.VERSION)
+        core_spec = importlib.util.spec_from_file_location('_core', ROOT / 'scripts' / '_core.py')
+        core = importlib.util.module_from_spec(core_spec)
+        core_spec.loader.exec_module(core)
+        self.assertEqual(release_check.read_version(ROOT), core.VERSION)
 
 
 if __name__ == '__main__':
