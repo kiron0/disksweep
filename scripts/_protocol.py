@@ -17,7 +17,7 @@ def run(function):
         print(json.dumps({"ok": False, "error": {"code": "REFUSED", "message": str(error)}}))
         sys.exit(2)
     except FileExistsError:
-        print(json.dumps({"ok": False, "error": {"code": "ALREADY_EXISTS", "message": "Receipt consumed or output already exists; inspect journal before retrying"}}))
+        print(json.dumps({"ok": False, "error": {"code": "ALREADY_EXISTS", "message": "Removal plan already consumed or output already exists; inspect records before retrying"}}))
         sys.exit(2)
     except (OSError, ValueError, KeyError, TypeError, OverflowError):
         print(json.dumps({"ok": False, "error": {"code": "INVALID_OR_UNAVAILABLE", "message": "Invalid request, inaccessible filesystem, or unsupported capability; no automatic retry"}}))

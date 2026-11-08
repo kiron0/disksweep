@@ -481,7 +481,7 @@ def analyze(request):
 class Store:
     """Private local trust anchor, separate from inventories and report files."""
     def __init__(self, path):
-        require(os.name == "posix", "Private signed state requires POSIX permissions; Windows supports audit proposals only")
+        require(os.name == "posix", "Saved profiles and snapshots require POSIX permissions; use session policies on Windows")
         self.path = Path(os.path.abspath(os.path.expanduser(path)))
         existing = self.path
         while not existing.exists():
