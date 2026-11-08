@@ -13,6 +13,7 @@ POLICY_KEYS = {"roots", "exclude", "max_entries", "max_depth", "max_seconds",
                "max_hash_bytes", "preserve_offline", "never_permanently_delete"}
 PROJECT_RULES = {rule["id"]: (tuple(rule["project_markers"]), tuple(rule["artifact_paths"]), rule["application"])
                  for rule in core.read_rules() if rule.get("project_markers")}
+ARTIFACT_HEADS = {Path(a).parts[0].casefold() for _, artifacts, _ in PROJECT_RULES.values() for a in artifacts}
 
 
 def policy(value):
@@ -64,13 +65,46 @@ def operation_report(request):
     return {"markdown": "\n".join(lines) + "\n", "shareable": True}
 
 
-def project_finding(entry):
+def project_marker(directory, rule_id, markers, cache):
+    key = (str(directory), rule_id)
+    if key in cache:
+        return cache[key]
+    marker = None
+    for name in markers:
+        candidate = directory / name
+        try:
+            if candidate.is_file() and not core.redirect(candidate.lstat()):
+                marker = candidate; break
+        except OSError:
+            pass
+    # Project-local .NET files are detected by metadata, never executed.
+    if rule_id == "dotnet-build" and marker is None:
+        try:
+            with os.scandir(directory) as items:
+                for index, item in enumerate(items):
+                    if index >= 200:
+                        break
+                    if item.name.endswith((".csproj", ".fsproj", ".vbproj")) and item.is_file(follow_symlinks=False):
+                        marker = directory / item.name; break
+        except OSError:
+            pass
+    cache[key] = marker
+    return marker
+
+
+def project_finding(entry, cache=None):
     path, root = Path(entry["path"]), Path(entry["root"])
-    if core.protected(path):
+    if not ARTIFACT_HEADS.intersection(x.casefold() for x in path.parts) or core.protected(path):
         return None
+    cache = {} if cache is None else cache
+    markers_cache = cache.setdefault("markers", {})
+    verified = cache.setdefault("verified", set())
     try:
-        core.absolute(path)
-        if core.identity(path.lstat()) != entry["identity"]:
+        if str(path.parent) not in verified:
+            core.absolute(path.parent)
+            verified.add(str(path.parent))
+        info = path.lstat()
+        if core.redirect(info) or core.identity(info) != entry["identity"]:
             return None
     except (OSError, core.Refusal):
         return None
@@ -78,33 +112,16 @@ def project_finding(entry):
         if not core.inside(directory, root):
             break
         for rule_id, (markers, artifacts, app) in PROJECT_RULES.items():
-            marker = None
-            for name in markers:
-                candidate = directory / name
-                try:
-                    if candidate.is_file() and not core.redirect(candidate.lstat()):
-                        marker = candidate; break
-                except OSError:
-                    pass
-            # Project-local .NET files are detected by metadata, never executed.
-            if rule_id == "dotnet-build" and marker is None:
-                try:
-                    with os.scandir(directory) as items:
-                        for index, item in enumerate(items):
-                            if index >= 200:
-                                break
-                            if item.name.endswith((".csproj", ".fsproj", ".vbproj")) and item.is_file(follow_symlinks=False):
-                                marker = directory / item.name; break
-                except OSError:
-                    pass
+            if not any(core.inside(path, directory / artifact) for artifact in artifacts):
+                continue
+            marker = project_marker(directory, rule_id, markers, markers_cache)
             if marker is None:
                 continue
-            if any(core.inside(path, directory / artifact) for artifact in artifacts):
-                return {"candidate_id": entry["id"], "category": "project-build", "rule_id": rule_id,
-                        "classification": "REVIEW", "application": app, "project": str(directory),
-                        "marker": str(marker), "marker_identity": core.identity(marker.lstat()),
-                        "mechanism": "Review the tool's supported clean/preview interface with this project stopped",
-                        "side_effects": "Rebuild cost, test output loss, or unavailable offline dependencies; not automatically removable"}
+            return {"candidate_id": entry["id"], "category": "project-build", "rule_id": rule_id,
+                    "classification": "REVIEW", "application": app, "project": str(directory),
+                    "marker": str(marker), "marker_identity": core.identity(marker.lstat()),
+                    "mechanism": "Review the tool's supported clean/preview interface with this project stopped",
+                    "side_effects": "Rebuild cost, test output loss, or unavailable offline dependencies; not automatically removable"}
     return None
 
 
@@ -113,14 +130,17 @@ def directory_totals(inventory):
     seen = defaultdict(set)
     for entry in inventory["entries"]:
         root, path = Path(entry["root"]), Path(entry["path"])
+        key = (entry["identity"]["device"], entry["identity"]["inode"])
         for parent in path.parents:
             if not core.inside(parent, root):
                 break
-            row = totals.setdefault(str(parent), {"path": str(parent), "files": 0, "logical_bytes": 0,
-                                                  "allocated_bytes_known": 0, "coverage_complete": inventory["complete"]})
-            key = (entry["identity"]["device"], entry["identity"]["inode"])
-            if key not in seen[str(parent)]:
-                seen[str(parent)].add(key)
+            name = str(parent)
+            row = totals.get(name)
+            if row is None:
+                row = totals[name] = {"path": name, "files": 0, "logical_bytes": 0,
+                                      "allocated_bytes_known": 0, "coverage_complete": inventory["complete"]}
+            if key not in seen[name]:
+                seen[name].add(key)
                 row["files"] += 1; row["logical_bytes"] += entry["logical_bytes"]
                 row["allocated_bytes_known"] += entry["allocated_bytes"] or 0
     return sorted(totals.values(), key=lambda x: x["logical_bytes"], reverse=True)
@@ -152,13 +172,14 @@ def recommendations(request):
     project_index = {x["candidate_id"]: x for x in cached} if cached is not None else None
     started = time.monotonic()
     complete = request.get("project_analysis_complete", True)
+    cache = {}
     for index, entry in enumerate(inventory["entries"]):
         if inventory.get("protected_metadata_only"):
             continue
         if project_index is not None:
             project = project_index.get(entry["id"])
-        elif index < 20000 and time.monotonic() - started < 10:
-            project = project_finding(entry)
+        elif index < 100000 and time.monotonic() - started < 10:
+            project = project_finding(entry, cache)
         else:
             project = None; complete = False
         kind = project["classification"] if project else entry["classification"]
@@ -196,11 +217,12 @@ def enrich_analysis(inventory, request):
     projects = []
     started = time.monotonic()
     inspected = 0
+    cache = {}
     for entry in entries:
-        if inspected >= 20000 or time.monotonic() - started > 10:
+        if inspected >= 100000 or time.monotonic() - started > 10:
             break
         inspected += 1
-        finding = project_finding(entry)
+        finding = project_finding(entry, cache)
         if finding:
             projects.append(finding)
     health = []

@@ -41,6 +41,10 @@ PROTECTED_NAMES = {"cookies", "login data", "bookmarks", "history", "preferences
                    "web data", "wallet.dat", "id_rsa", "id_ed25519"}
 SYSTEM_ROOTS = ("/etc", "/usr", "/boot", "/var/lib", "/proc", "/sys", "/dev",
                 "/System", "/Library", "/bin", "/sbin", "/lib", "/lib64")
+SYSTEM_ROOT_PATHS = tuple(Path(x) for x in SYSTEM_ROOTS)
+WINDOWS_SYSTEM_PARTS = {"windows", "program files", "program files (x86)", "programdata"}
+_RULES_CACHE = {}
+_SIGNATURE_CACHE = {}
 
 
 class Refusal(ValueError):
@@ -87,7 +91,12 @@ def absolute(path):
 
 
 def inside(path, root):
-    return path == root or root in path.parents
+    child, parent = path.parts, root.parts
+    if len(child) < len(parent):
+        return False
+    if os.name == "nt":
+        return all(a.lower() == b.lower() for a, b in zip(child, parent))
+    return child[:len(parent)] == parent
 
 
 def protected(path, exclusions=()):
@@ -96,19 +105,32 @@ def protected(path, exclusions=()):
         return True
     if path.name.startswith(".env") or path.suffix.casefold() in {".db", ".sqlite", ".sqlite3", ".pem", ".key", ".p12", ".pfx", ".kdbx"}:
         return True
-    if any(inside(path, Path(x)) for x in exclusions):
+    if any(inside(path, x if isinstance(x, Path) else Path(x)) for x in exclusions):
         return True
-    if os.name != "nt" and any(inside(path, Path(x)) for x in SYSTEM_ROOTS):
+    if os.name != "nt" and any(inside(path, x) for x in SYSTEM_ROOT_PATHS):
         return True
-    if os.name == "nt" and any(x in parts for x in {"windows", "program files", "program files (x86)", "programdata"}):
+    if os.name == "nt" and parts & WINDOWS_SYSTEM_PARTS:
         return True
     return False
 
 
 def read_rules():
+    files = sorted((BASE / "rules").glob("*/*.json"))
+    key = []
+    for file in files:
+        s = file.stat()
+        key.append((str(file), s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns))
+    key = tuple(key)
+    if key not in _RULES_CACHE:
+        _RULES_CACHE.clear()
+        _RULES_CACHE[key] = json.dumps(_load_rules(files))
+    return json.loads(_RULES_CACHE[key])
+
+
+def _load_rules(files):
     rules = []
     seen = set()
-    for file in sorted((BASE / "rules").glob("*/*.json")):
+    for file in files:
         for rule in json.loads(file.read_text(encoding="utf-8")):
             require(rule["id"] not in seen, "Duplicate rule identifier")
             require(rule["strategy"] in {"audit-only", "quarantine-bytecode"}, "Unsupported rule strategy")
@@ -164,23 +186,47 @@ def project_for_bytecode(path, root):
     return None
 
 
+def signature_index(signatures):
+    index = _SIGNATURE_CACHE.get(signatures)
+    if index is None:
+        literal, wildcard = defaultdict(list), []
+        for order, signature in enumerate(signatures):
+            segments = tuple((x, any(c in x for c in "*?[")) for x in signature.casefold().split("/"))
+            (wildcard if segments[0][1] else literal[segments[0][0]]).append((order, segments))
+        index = _SIGNATURE_CACHE[signatures] = (dict(literal), wildcard)
+    return index
+
+
+def first_signature(parts, signatures):
+    literal, wildcard = signature_index(signatures)
+    best = None
+    for i, part in enumerate(parts):
+        for order, segments in (*literal.get(part, ()), *wildcard):
+            if best is not None and order >= best or i + len(segments) > len(parts):
+                continue
+            if all(fnmatch.fnmatchcase(parts[i + k], x) if glob else parts[i + k] == x
+                   for k, (x, glob) in enumerate(segments)):
+                best = order
+    return best
+
+
 def classify(path, root, info, rules, exclusions=()):
     if protected(path, exclusions):
         return None, "PROTECTED", None
     evidence = project_for_bytecode(path, root)
     parts = [x.casefold() for x in path.parts]
-    for rule in rules:
-        if platform_id() not in rule["platforms"]:
-            continue
-        if rule["id"] == "python-bytecode" and evidence and info["links"] == 1:
-            return rule, "SAFE-CANDIDATE", evidence
+    current = platform_id()
+    active = [rule for rule in rules if current in rule["platforms"]]
+    owners = [(rule, x) for rule in active if rule["id"] != "python-bytecode" for x in rule["signatures"]]
+    match = first_signature(parts, tuple(x for _, x in owners))
+    for rule in active:
         if rule["id"] == "python-bytecode":
+            if evidence and info["links"] == 1:
+                return rule, "SAFE-CANDIDATE", evidence
             continue
         # Exact documented path signatures; a directory called Cache is not a rule.
-        for signature in rule["signatures"]:
-            sig = [x.casefold() for x in signature.split("/")]
-            if any(all(fnmatch.fnmatchcase(a, b) for a, b in zip(parts[i:i + len(sig)], sig)) for i in range(len(parts) - len(sig) + 1)):
-                return rule, "REVIEW", {"signature": signature, "active_use": "unknown"}
+        if match is not None and owners[match][0] is rule:
+            return rule, "REVIEW", {"signature": owners[match][1], "active_use": "unknown"}
     return None, "PROTECTED", None
 
 
@@ -253,6 +299,8 @@ def scan(request):
     require(len(set(roots)) == len(roots), "Duplicate roots")
     require(not any(inside(a, b) for a in roots for b in roots if a != b), "Overlapping roots")
     exclusions = [os.path.abspath(os.path.expanduser(x)) for x in request.get("exclude", [])]
+    excluded = [Path(x) for x in exclusions]
+    windows = platform_id() == "windows"
     rules = read_rules()
     mounts = mount_points()
     limit = min(max(int(request.get("max_entries", 20000)), 1), 100000)
@@ -266,7 +314,7 @@ def scan(request):
     complete = True
     for root in roots:
         require(root.is_dir() and (metadata_only or not protected(root, exclusions)), "Scan root is protected or not a directory")
-        require(not any(inside(root, Path(x)) for x in exclusions), "Scan root is excluded")
+        require(not any(inside(root, x) for x in excluded), "Scan root is excluded")
         rootdev = root.stat().st_dev
         devices[str(root)] = rootdev
         stack = [(root, 0)]
@@ -286,15 +334,16 @@ def scan(request):
                         count += 1
                         path = directory / item.name
                         try:
-                            if any(inside(path, Path(x)) for x in exclusions):
+                            if any(inside(path, x) for x in excluded):
                                 issues.append({"path": str(path), "reason": "protected"}); continue
                             # Windows DirEntry.stat caches zero device/inode/link IDs.
                             # lstat() retrieves the complete filesystem identity there.
-                            s = path.lstat() if platform_id() == "windows" else item.stat(follow_symlinks=False)
-                            if redirect(s) or s.st_dev != rootdev or os.path.ismount(path) or path in mounts:
+                            s = path.lstat() if windows else item.stat(follow_symlinks=False)
+                            is_dir = stat.S_ISDIR(s.st_mode)
+                            if redirect(s) or s.st_dev != rootdev or path in mounts or (is_dir and os.path.ismount(path)):
                                 issues.append({"path": str(path), "reason": "redirection-or-mount"}); continue
-                            if item.is_dir(follow_symlinks=False):
-                                if path.name.casefold() in PRUNE or any(inside(path, Path(x)) for x in exclusions) or (not metadata_only and protected(path, exclusions)):
+                            if is_dir:
+                                if path.name.casefold() in PRUNE or (not metadata_only and protected(path, excluded)):
                                     issues.append({"path": str(path), "reason": "protected"})
                                 elif level < depth:
                                     stack.append((path, level + 1))
@@ -304,7 +353,7 @@ def scan(request):
                             if not stat.S_ISREG(s.st_mode):
                                 continue
                             info = identity(s)
-                            rule, kind, evidence = (None, "PROTECTED", None) if metadata_only else classify(path, root, info, rules, exclusions)
+                            rule, kind, evidence = (None, "PROTECTED", None) if metadata_only else classify(path, root, info, rules, excluded)
                             allocated = getattr(s, "st_blocks", None)
                             allocated = allocated * 512 if allocated is not None else None
                             key = (s.st_dev, s.st_ino)
@@ -389,6 +438,7 @@ def analyze(request):
         require(request.get("content_read_approved") is True, "Duplicate hashing requires explicit content-read approval")
         budget = min(max(int(request.get("max_hash_bytes", 256 * 1024**2)), 0), 4 * 1024**3)
         groups = defaultdict(list)
+        by_id = {e["id"]: e for e in entries}
         for entry in entries:
             require(entry["root"] in inventory["roots"] and inside(Path(entry["path"]), Path(entry["root"])), "Hash candidate escaped inventory scope")
             if entry["unique_inode"] and entry["logical_bytes"] and not protected(Path(entry["path"]), inventory.get("exclude", [])):
@@ -412,7 +462,7 @@ def analyze(request):
                     out["hash_bytes_read"] += counter[0]
             for hash_, ids in matches.items():
                 if len(ids) > 1:
-                    reference = min((e for e in entries if e["id"] in ids), key=lambda e: e["identity"]["mtime_ns"])
+                    reference = min((by_id[x] for x in ids), key=lambda e: e["identity"]["mtime_ns"])
                     out["duplicates"].append({"sha256": hash_, "candidate_ids": ids,
                                               "reference_candidate_id": reference["id"], "reference_basis": "oldest modified copy; heuristic, not proof of origin",
                                               "classification": "PROTECTED", "automatic_removal": False,
@@ -566,8 +616,9 @@ def directory_fd(path):
 def execute(request):
     require(os.name == "posix", "Windows execution is disabled; audit and plan only")
     store = Store(request["state_dir"])
-    plan = load_plan(store, request["plan_id"])
     receipt = store.load("approval-" + request["approval_id"] + ".json")
+    require(not os.path.lexists(store.path / ("used-" + receipt["id"] + ".json")), "Approval already used; inspect operation records before preparing a fresh plan")
+    plan = load_plan(store, request["plan_id"])
     require(receipt["plan_id"] == plan["id"] and receipt["plan_digest"] == plan["digest"], "Approval does not match plan")
     require(receipt["candidate_ids"] == [x["id"] for x in plan["entries"]], "Approval scope mismatch")
     require(time.time() < receipt["expires_at"], "Approval expired")

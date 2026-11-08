@@ -46,7 +46,7 @@ def review_prompt(result):
     elif not windows and result['discovery']['capabilities']['quarantine'] and result['guidance']['recorded_bytecode_candidates']:
         options.append({'id': 'review_bytecode', 'label': 'Review bytecode cleanup',
                         'description': 'Prepare an exact quarantine plan before requesting approval; quarantine frees no space.'})
-    elif not windows:
+    else:
         options.append({'id': 'native_cleanup', 'label': 'Review Windows cleanup' if windows else 'Review native cleanup',
                         'description': 'Review application or OS storage controls; this choice does not authorize file deletion.'})
     options.extend([
