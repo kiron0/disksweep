@@ -23,6 +23,22 @@ python3 -m venv .venv
 On Windows use `.venv\Scripts\python.exe`. Build a local skill archive with
 `python3 scripts/package_skill.py dist/swipr.skill`.
 
+## Releasing
+
+Releases are automatic. Every push to `main` runs the Release workflow, which reads
+`VERSION` from `scripts/_core.py` and compares `v<VERSION>` with existing tags and
+GitHub releases:
+
+- a release for that tag already exists, or the version is not newer than the latest
+  stable tag: the workflow skips;
+- the tag exists without a release: it tests and publishes that tagged commit;
+- otherwise: it runs the full test matrix, creates the tag on the pushed commit and
+  publishes the release with the skill archive and `SHA256SUMS`.
+
+To release, bump `VERSION`, `metadata.version` in `SKILL.md`, both versions in
+`.claude-plugin/`, and add a `## X.Y.Z — YYYY-MM-DD` section to CHANGELOG.md, then push
+to `main`. Use **Run workflow** on the Release action to retry a failed publish.
+
 ## Rule release gate
 
 Every rule must document its supported OS/tool versions, validated location and

@@ -1,33 +1,66 @@
 name: Release
 on:
   push:
-    tags: ['v*']
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Existing stable version tag to publish or retry
-        required: true
-        type: string
-        default: v0.1.5
 permissions:
   contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
 jobs:
+  detect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      release: ${{ steps.decide.outputs.release }}
+      tag: ${{ steps.decide.outputs.tag }}
+      ref: ${{ steps.decide.outputs.ref }}
+      tag_exists: ${{ steps.decide.outputs.tag_exists }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compare the skill version with existing tags and releases
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python .github/scripts/release_check.py --sha "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY" >> "$GITHUB_OUTPUT"
+      - name: Summarize the decision
+        env:
+          RELEASE: ${{ steps.decide.outputs.release }}
+          TAG: ${{ steps.decide.outputs.tag }}
+          REASON: ${{ steps.decide.outputs.reason }}
+        run: |
+          echo "Release: $RELEASE ($TAG)" >> "$GITHUB_STEP_SUMMARY"
+          echo "$REASON" >> "$GITHUB_STEP_SUMMARY"
+          echo "$REASON"
   tests:
+    needs: detect
+    if: needs.detect.outputs.release == 'true'
     uses: ./.github/workflows/tests.yml
     with:
-      ref: ${{ inputs.tag || github.ref }}
+      ref: ${{ needs.detect.outputs.ref }}
   publish:
-    needs: tests
+    needs: [detect, tests]
+    if: needs.detect.outputs.release == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: write
     env:
-      SWIPR_RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      SWIPR_RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+      SWIPR_RELEASE_REF: ${{ needs.detect.outputs.ref }}
+      SWIPR_TAG_EXISTS: ${{ needs.detect.outputs.tag_exists }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.SWIPR_RELEASE_TAG }}
+          ref: ${{ env.SWIPR_RELEASE_REF }}
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
@@ -54,7 +87,8 @@ jobs:
           from pathlib import Path
           tag = os.environ['SWIPR_RELEASE_TAG']
           sections = Path('CHANGELOG.md').read_text().split('\n## ')
-          section = next(s for s in sections if s.startswith(tag[1:] + ' — '))
+          section = next((s for s in sections if s.startswith(tag[1:] + ' — ')), None)
+          assert section, 'CHANGELOG.md needs a "## ' + tag[1:] + ' — DATE" section'
           changes = section.split('\n', 1)[1].strip()
           assert changes, 'The release requires changelog entries'
           notes = Path('.github/release-notes.md').read_text().replace('{{TAG}}', tag).replace('{{CHANGES}}', changes)
@@ -64,9 +98,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "$SWIPR_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$SWIPR_RELEASE_TAG" "dist/swipr-${SWIPR_RELEASE_TAG}.skill" dist/SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber
-            gh release edit "$SWIPR_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --title "$SWIPR_RELEASE_TAG" --notes-file dist/release-notes.md --draft=false --prerelease=false --latest
+          if [ "$SWIPR_TAG_EXISTS" = "true" ]; then
+            target="--verify-tag"
           else
-            gh release create "$SWIPR_RELEASE_TAG" "dist/swipr-${SWIPR_RELEASE_TAG}.skill" dist/SHA256SUMS --repo "$GITHUB_REPOSITORY" --title "$SWIPR_RELEASE_TAG" --notes-file dist/release-notes.md --verify-tag --latest
+            target="--target=$SWIPR_RELEASE_REF"
           fi
+          gh release create "$SWIPR_RELEASE_TAG" "dist/swipr-${SWIPR_RELEASE_TAG}.skill" dist/SHA256SUMS --repo "$GITHUB_REPOSITORY" --title "$SWIPR_RELEASE_TAG" --notes-file dist/release-notes.md --latest "$target"
