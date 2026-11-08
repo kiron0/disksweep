@@ -17,7 +17,7 @@ blocks, snapshots, compression and open files can affect reclamation.
 Exact members: {{IDs and private local paths when appropriate}}
 Plan digest / expiration: {{digest}} / {{expiration}}
 Side effects and recovery: {{details}}
-Estimated immediate free-space increase from quarantine: **0 bytes**.
+Removal: **PERMANENT DELETION**; bypasses Trash and Recycle Bin; Swipr cannot undo it.
 User approval: {{not requested | pending | exact scope approved}}
 
 ## Verified outcome

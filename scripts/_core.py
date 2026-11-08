@@ -1,8 +1,7 @@
 """Swipr's offline, standard-library-only filesystem and policy engine.
 
-Source-backed bytecode can be quarantined, then permanently removed through a
-separate approval protocol. Other rules are informational; arbitrary deletion
-and automatic Trash emptying are excluded.
+Recognized findings can enter an exact, digest-bound permanent-removal plan on
+every supported OS. Arbitrary deletion and automatic Trash emptying are excluded.
 """
 from __future__ import annotations
 
@@ -11,7 +10,6 @@ import datetime as dt
 import hashlib
 import hmac
 import html
-import importlib.util
 import fnmatch
 import getpass
 import json
@@ -133,10 +131,10 @@ def _load_rules(files):
     for file in files:
         for rule in json.loads(file.read_text(encoding="utf-8")):
             require(rule["id"] not in seen, "Duplicate rule identifier")
-            require(rule["strategy"] in {"audit-only", "quarantine-bytecode"}, "Unsupported rule strategy")
+            require(rule["strategy"] in {"audit-only", "remove-exact"}, "Unsupported rule strategy")
             require(rule["classification"] in KINDS and rule["version"] == 1, "Invalid rule")
-            require(rule["classification"] == ("SAFE-CANDIDATE" if rule["strategy"] == "quarantine-bytecode" else "REVIEW"), "Contradictory rule")
-            require(rule["strategy"] != "quarantine-bytecode" or rule["id"] == "python-bytecode", "Only verified bytecode quarantine is implemented")
+            require(rule["classification"] == ("SAFE-CANDIDATE" if rule["strategy"] == "remove-exact" else "REVIEW"), "Contradictory rule")
+            require(rule["strategy"] != "remove-exact" or rule["id"] == "python-bytecode", "Only verified bytecode is a safe exact-removal rule")
             require(not ({"command", "script", "shell"} & rule.keys()), "Executable rule data is forbidden")
             if rule.get("project_markers"):
                 require(rule["strategy"] == "audit-only" and isinstance(rule["project_markers"], list) and isinstance(rule.get("artifact_paths"), list), "Invalid project rule")
@@ -280,14 +278,19 @@ def probe(request):
             "suggested_roots": suggestions,
             "capabilities": {"metadata": True,
                              "content_hashing": os.name == "posix" and os.open in os.supports_dir_fd,
-                             "quarantine": os.name == "posix" and os.open in os.supports_dir_fd,
-                             "direct_remove": os.name == 'nt',
-                             "permanent_delete": os.name == 'nt' or (os.name == "posix" and os.open in os.supports_dir_fd),
-                             "permanent_delete_scope": 'exact approved current-user local NTFS files' if os.name == 'nt' else "separately approved private bytecode quarantine only",
+                             "direct_remove": removal_supported(),
+                             "permanent_delete": removal_supported(),
+                             "permanent_delete_scope": "exact approved current-user local regular files",
                              "active_use_detection": bool(shutil.which("lsof")) if os.name == "posix" else False,
                              "native_maintenance": "agent-guided; no automatic execution"},
             "notes": ["Suggested roots are proposals; scan only user-authorized scope.",
                       "Filesystem type and mounts are best effort; no mount is automatically authorized."]}
+
+
+def removal_supported():
+    if os.name == "nt":
+        return True
+    return os.name == "posix" and all(f in os.supports_dir_fd for f in (os.open, os.stat, os.unlink))
 
 
 def scan(request):
@@ -527,79 +530,10 @@ class Store:
         return value["payload"]
 
 
-def revalidate(entry, exclusions=()):
-    path, root = absolute(entry["path"]), absolute(entry["root"])
-    require(inside(path, root) and path != root, "Candidate escaped scope")
-    require(not protected(path, exclusions), "Protected candidate")
-    require(path.stat().st_dev == root.stat().st_dev, "Candidate crossed filesystem")
-    mounts = mount_points()
-    require(not any(p in mounts or os.path.ismount(p) for p in path.parents if inside(p, root) and p != root), "Candidate crosses a nested mount")
-    require(identity(path.lstat()) == entry["identity"], "Candidate changed since inventory")
-    require(os.name == "posix" and path.lstat().st_uid == os.getuid(), "Candidate must belong to the current user")
-    rule, kind, evidence = classify(path, root, identity(path.lstat()), read_rules(), exclusions)
-    require(rule and kind == "SAFE-CANDIDATE" and rule["strategy"] == "quarantine-bytecode", "Candidate is not executable")
-    require(entry["rule_id"] == rule["id"] and entry["rule_version"] == rule["version"], "Rule changed")
-    require(evidence == entry["evidence"], "Project or source changed")
-    require(time.time_ns() - path.stat().st_mtime_ns >= 86400 * 10**9, "Bytecode is recent; leave it untouched")
-    return path
-
-
-def create_plan(request):
-    inventory = request["inventory"]
-    require(not inventory.get("protected_metadata_only"), "Protected metadata audits cannot authorize cleanup plans")
-    store = Store(request["state_dir"])
-    roots = [absolute(x) for x in inventory["roots"]]
-    require(not any(inside(store.path, r) or inside(r, store.path) for r in roots), "State must be outside scan roots")
-    selected = request.get("candidate_ids", [])
-    require(selected and len(selected) == len(set(selected)) and len(selected) <= 1000, "Select 1–1000 distinct candidates")
-    index = {e["id"]: e for e in inventory["entries"]}
-    require(all(x in index for x in selected), "Unknown candidate identifier")
-    entries = [index[x] for x in selected]
-    for entry in entries:
-        require(entry["root"] in inventory["roots"], "Candidate root is not in inventory scope")
-        require(entry["id"] == digest({"path": entry["path"], "identity": entry["identity"]})[:24], "Forged candidate identity")
-        revalidate(entry, inventory.get("exclude", []))
-    require(len({x["identity"]["device"] for x in entries}) == 1, "Plan must use a single filesystem")
-    require(entries[0]["identity"]["device"] == store.path.stat().st_dev, "Quarantine must use the same filesystem")
-    plan = {"schema_version": 1, "id": secrets.token_hex(16), "created_at": now(),
-            "expires_at": time.time() + 900, "action": "quarantine", "entries": entries,
-            "rule_catalog_digest": digest(read_rules()),
-            "exclude": inventory.get("exclude", []), "roots": inventory["roots"],
-            "estimated_immediate_free_bytes": 0,
-            "warning": "Quarantine moves files on the same filesystem and frees no disk space. Permanent removal requires a separate, newly approved purge plan.",
-            "requires": "User approval of this exact plan after stopping the generating Python workload"}
-    plan["digest"] = digest(plan)
-    store.save("plan-" + plan["id"] + ".json", plan)
-    return plan
-
-
-def load_plan(store, plan_id):
-    plan = store.load("plan-" + plan_id + ".json")
-    require(time.time() < plan["expires_at"], "Plan expired; rescan and ask for approval again")
-    require(plan["action"] == "quarantine", "Only quarantine is supported")
-    require(plan["rule_catalog_digest"] == digest(read_rules()), "Rule catalog changed; rescan")
-    for entry in plan["entries"]:
-        revalidate(entry, plan["exclude"])
-    return plan
-
-
-def approve(request):
-    store = Store(request["state_dir"])
-    plan = load_plan(store, request["plan_id"])
-    require(request.get("plan_digest") == plan["digest"], "Approval must match the displayed plan digest")
-    require(request.get("user_approved") is True and request.get("workload_stopped") is True, "Fresh user approval and stopped-workload confirmation required")
-    require(isinstance(request.get("approval_note"), str) and 1 <= len(request["approval_note"]) <= 1000, "Record a minimal approval note, without private transcript content")
-    receipt = {"id": secrets.token_hex(16), "plan_id": plan["id"], "plan_digest": plan["digest"],
-               "candidate_ids": [x["id"] for x in plan["entries"]], "expires_at": min(plan["expires_at"], time.time() + 300),
-               "approval_note": request["approval_note"], "action": "quarantine", "workload_stopped": True}
-    store.save("approval-" + receipt["id"] + ".json", receipt)
-    return receipt
-
-
 @contextlib.contextmanager
 def directory_fd(path):
     """Pin every POSIX directory component, refusing symlinks throughout."""
-    require(os.name == "posix" and os.open in os.supports_dir_fd, "Secure quarantine is unsupported on this platform")
+    require(os.name == "posix" and os.open in os.supports_dir_fd, "Secure directory handles are unsupported on this platform")
     path = Path(path)
     require(path.is_absolute(), "Absolute path required")
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
@@ -611,119 +545,6 @@ def directory_fd(path):
         yield fd
     finally:
         os.close(fd)
-
-
-def execute(request):
-    require(os.name == "posix", "Windows execution is disabled; audit and plan only")
-    store = Store(request["state_dir"])
-    receipt = store.load("approval-" + request["approval_id"] + ".json")
-    require(not os.path.lexists(store.path / ("used-" + receipt["id"] + ".json")), "Approval already used; inspect operation records before preparing a fresh plan")
-    plan = load_plan(store, request["plan_id"])
-    require(receipt["plan_id"] == plan["id"] and receipt["plan_digest"] == plan["digest"], "Approval does not match plan")
-    require(receipt["candidate_ids"] == [x["id"] for x in plan["entries"]], "Approval scope mismatch")
-    require(time.time() < receipt["expires_at"], "Approval expired")
-    require(shutil.disk_usage(store.path).free >= len(canonical(plan)) * 4 + 65536, "Insufficient free space for safe operation journals; use reviewed native storage controls")
-    # Atomic consumption prevents parallel/replayed execution, even after interruption.
-    store.write_exclusive("used-" + receipt["id"] + ".json", {"started_at": now()})
-    operation = {"schema_version": 1, "id": secrets.token_hex(16), "plan_id": plan["id"],
-                 "approval_id": receipt["id"], "started_at": now(), "status": "running", "items": [],
-                 "before_free": shutil.disk_usage(store.path).free, "after_free": None,
-                 "observed_free_delta": None, "estimated_immediate_free_bytes": 0}
-    quarantine = store.path / ("quarantine-" + operation["id"])
-    quarantine.mkdir(mode=0o700)
-    # Journal intent BEFORE the first move. Retain it for interrupted-operation recovery.
-    store.save("operation-" + operation["id"] + ".json", {**operation, "pending": plan["entries"]})
-    with directory_fd(quarantine) as target_fd:
-        for entry in plan["entries"]:
-            row = {"candidate_id": entry["id"], "original": entry["path"],
-                   "quarantined": str(quarantine / entry["id"]), "identity": entry["identity"]}
-            try:
-                path = revalidate(entry, plan["exclude"])
-                with directory_fd(path.parent) as source_fd:
-                    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
-                    fd = os.open(path.name, flags, dir_fd=source_fd)
-                    try:
-                        require(identity(os.fstat(fd)) == entry["identity"], "Candidate changed before move")
-                        # Reading four bytes is essential validation, only after approval.
-                        require(os.read(fd, 4) == importlib.util.MAGIC_NUMBER, "Unrecognized bytecode magic for this Python runtime")
-                        require(identity(os.stat(path.name, dir_fd=source_fd, follow_symlinks=False)) == entry["identity"], "Candidate changed before move")
-                        os.rename(path.name, entry["id"], src_dir_fd=source_fd, dst_dir_fd=target_fd)
-                        moved = os.stat(entry["id"], dir_fd=target_fd, follow_symlinks=False)
-                        # Rename changes ctime; device/inode/type/size/mtime must agree.
-                        expected = entry["identity"]
-                        matched = all(identity(moved)[k] == expected[k] for k in ("device", "inode", "mode", "size", "mtime_ns", "links"))
-                        if not matched:
-                            # Restore the original name without overwriting a concurrent file.
-                            # Retain the quarantine link as evidence; never unlink unknown data.
-                            try:
-                                os.link(entry["id"], path.name, src_dir_fd=target_fd,
-                                        dst_dir_fd=source_fd, follow_symlinks=False)
-                                row["concurrent_name_restored"] = True
-                            except OSError:
-                                row["concurrent_name_restored"] = False
-                        require(matched, "Concurrent replacement detected; stop and inspect quarantine")
-                        row["quarantine_identity"] = identity(moved)
-                        row["status"] = "quarantined"
-                    finally:
-                        os.close(fd)
-            except (OSError, Refusal):
-                row["status"] = "failed-stop"
-                row["reason"] = "Revalidation, bytecode validation, filesystem operation, or post-move identity check failed; inspect original and quarantine before retrying"
-                operation["items"].append(row)
-                store.save("item-" + secrets.token_hex(16) + ".json", {"operation_id": operation["id"], **row})
-                break
-            operation["items"].append(row)
-            store.save("item-" + secrets.token_hex(16) + ".json", {"operation_id": operation["id"], **row})
-    operation["after_free"] = shutil.disk_usage(store.path).free
-    operation["observed_free_delta"] = operation["after_free"] - operation["before_free"]
-    operation["status"] = "complete" if len(operation["items"]) == len(plan["entries"]) and all(x["status"] == "quarantined" for x in operation["items"]) else "partial"
-    operation["finished_at"] = now()
-    store.save("result-" + operation["id"] + ".json", operation)
-    return operation
-
-
-def verify(request):
-    store = Store(request["state_dir"])
-    result = store.load("result-" + request["operation_id"] + ".json")
-    for item in result["items"]:
-        if item["status"] == "quarantined":
-            try:
-                p = absolute(item["quarantined"])
-                item["verified"] = identity(p.lstat()) == item["quarantine_identity"] and not os.path.lexists(item["original"])
-            except (OSError, Refusal):
-                item["verified"] = False
-    result["verified_at"] = now()
-    result["all_verified"] = result["status"] == "complete" and all(x.get("verified", False) for x in result["items"])
-    result["free_now"] = shutil.disk_usage(store.path).free
-    result["warning"] = "Free-space deltas include unrelated activity. Quarantine retains data and does not reclaim its allocation."
-    return result
-
-
-def restore(request):
-    require(request.get("user_approved") is True, "Restoration requires user approval")
-    store = Store(request["state_dir"])
-    result = store.load("result-" + request["operation_id"] + ".json")
-    rows = []
-    for item in result["items"]:
-        if item["status"] != "quarantined":
-            continue
-        row = {"candidate_id": item["candidate_id"], "status": "skipped"}
-        try:
-            path = absolute(item["quarantined"])
-            original = Path(item["original"])
-            require(identity(path.lstat()) == item["quarantine_identity"], "Quarantine object changed")
-            require(not protected(original), "Restoration location is now protected")
-            with directory_fd(path.parent) as source_fd, directory_fd(original.parent) as dest_fd:
-                # link() is atomic and fails if the original name already exists.
-                os.link(path.name, original.name, src_dir_fd=source_fd, dst_dir_fd=dest_fd, follow_symlinks=False)
-            row["status"] = "restored-quarantine-link-retained"
-        except (OSError, Refusal):
-            row["reason"] = "Original exists, parent changed, or quarantine could not be validated"
-        rows.append(row)
-    restored = {"schema_version": 1, "id": secrets.token_hex(16), "operation_id": result["id"],
-                "created_at": now(), "items": rows, "quarantine_retained": True}
-    store.save("restore-" + restored["id"] + ".json", restored)
-    return restored
 
 
 def docker_audit(request):
@@ -774,12 +595,12 @@ def human_report(request):
     for kind, summary in inventory["summary"].items():
         lines.append(f"| {kind} | {summary['count']} | {summary['logical_bytes']} | {summary['allocated_bytes_known']} |")
     lines += ["", "Sizes count hard-linked inodes once. Shared blocks, clones, compression, snapshots and open files make physical savings uncertain.",
-              "Quarantine's estimated immediate free-space increase is **0 bytes**.", "", "| Item | Logical bytes | Classification | Mechanism |", "|---|---:|---|---|"]
+              "Nothing is removed without an exact approved plan.", "", "| Item | Logical bytes | Classification | Mechanism |", "|---|---:|---|---|"]
     if any(disk.get('free') is None for disk in inventory['disks']):
         lines.insert(7, 'Disk space: unknown for some roots; volume measurements were unavailable. File traversal coverage is reported separately.')
     for entry in sorted(inventory["entries"], key=lambda x: x["logical_bytes"], reverse=True)[:30]:
         lines.append(f"| {location(entry)} | {entry['logical_bytes']} | {entry['classification']} | {entry['strategy']} |")
     if request.get('include_next', True):
-        lines += ["", "Next: review exact candidates, side effects and recovery. Approval applies only to a fixed, unexpired plan.",
+        lines += ["", "Next: review exact candidates, side effects and recovery. Permanent removal applies only to a fixed, unexpired plan.",
                   "Native browser, package, Docker, OS, and Trash cleanup is guided review only. Unknown data remains protected."]
     return {"markdown": "\n".join(lines) + "\n", "shareable": shareable}

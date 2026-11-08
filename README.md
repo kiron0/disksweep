@@ -50,9 +50,10 @@ Swipr scans your current local user profile, finds storage opportunities, then
 shows one review prompt. Explicit folders or policies override that default.
 The full scan includes discovery and analysis; it never approves removal.
 
-On Windows, review the exact proposed files and choose **Permanently delete
-selected files**. Submitting that choice executes and verifies removal directly.
-The prompt clearly warns that deletion **cannot be undone** and bypasses Recycle Bin.
+On macOS, Linux and Windows alike, review the exact proposed files and choose
+**Permanently delete selected files**. Submitting that choice executes and verifies
+removal directly. The prompt clearly warns that deletion **cannot be undone** and
+bypasses Trash and Recycle Bin.
 Agents with a question UI show selectable choices; no magic reply phrase is required.
 
 | Agent | Invocation |
@@ -82,7 +83,7 @@ hashing requires separate approval and a supported POSIX platform.
 1. **Audit** your user profile or selected folders within time, depth, and entry limits.
 2. **Understand** findings, recorded evidence, side effects, and recovery options.
 3. **Choose** the next action in one review prompt. Supported changes require an
-   exact plan and fresh approval; submitting the irreversible Windows choice runs it directly.
+   exact plan and fresh approval; submitting the irreversible choice runs it directly on every OS.
 
 The full pass has limits of 100,000 entries, 32 levels, and 60 seconds. Coverage
 can be partial. Additional drives, other profiles and protected areas are excluded
@@ -90,12 +91,11 @@ unless separately scoped. Use `$swipr start --guide` for help without scanning.
 
 Personal files, source, dependencies, credentials, backups, and system state stay
 protected from automated cleanup. Most application and system maintenance uses
-reviewed native controls. POSIX changes are limited to eligible Python bytecode. Windows supports exact
-approved removal of owned files on local NTFS, with no folder recursion or force.
+reviewed native controls. macOS, Linux and Windows share one flow: exact approved
+removal of owned recognized files, with no folder recursion or force.
 
-> Quarantine keeps files on the same disk and frees no space. Permanent removal
-> requires a separate exact plan and explicit irreversible approval on POSIX.
-> Windows direct removal is permanent from the start; Swipr cannot undo it.
+> Removal is permanent on every OS. It bypasses Trash and Recycle Bin, and Swipr
+> cannot undo it. Nothing is removed without an exact plan and explicit approval.
 
 ## Compatibility
 
@@ -103,8 +103,7 @@ approved removal of owned files on local NTFS, with no folder recursion or force
 | :--- | :--- | :--- |
 | Audits and reports | Supported | Supported |
 | Duplicate hashing | POSIX handles required | Unavailable |
-| Bytecode quarantine / purge | POSIX handles required | Unavailable |
-| Exact selected-file permanent removal | Use bytecode workflow | Local NTFS; explicit approval |
+| Exact selected-file permanent removal | POSIX handles; explicit approval | Local NTFS; explicit approval |
 | Native guidance | OS dependent | OS dependent |
 
 <details>

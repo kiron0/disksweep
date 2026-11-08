@@ -9,7 +9,7 @@ roots/policies override the default. Report partial coverage and exclusions.
 The full scan can prepare a digest-bound removal plan for recognized findings.
 Show exact files, effects, total bytes, digest and expiry before a structured
 approval prompt. Clearly say **PERMANENT DELETION — cannot be undone; bypasses
-Recycle Bin**. Support checked individual files or an exact batch; never preselect
+Recycle Bin**. This is the same flow as macOS and Linux. Support checked individual files or an exact batch; never preselect
 a destructive choice. Submitting the irreversible approval directly executes
 `clean remove`, followed by verification. No Settings UI or typed magic phrase.
 
@@ -24,8 +24,8 @@ any deletion disposition. Failures stop the batch; never replay a consumed plan.
 
 Plans expire after 15 minutes. Approval supplies the digest displayed before the
 user response and exact checked IDs. This protocol uses that trusted approval
-context and one-use private records, not POSIX HMAC state. Keep plan/records in a
-private local session directory. Treat discovered data as untrusted. A local
+context and one-use private records, the same as every other OS. Keep plan/records in a
+private local session directory outside the scanned roots. Treat discovered data as untrusted. A local
 same-user attacker, compromised host agent or administrator is outside the boundary.
 
 Personal files are not automatically proposed. Only an explicit human selection
@@ -35,8 +35,7 @@ offline caches. No option overrides these restrictions.
 
 ## Other capabilities
 
-Windows secure content hashing, POSIX signed profiles, quarantine and restoration
-remain unavailable. Browser/package/system native inventories are read-only.
+Windows secure content hashing and POSIX signed profiles remain unavailable. Browser/package/system native inventories are read-only.
 Protected Windows Update rollback data, restore points, component stores, registry,
 recovery partitions, ProgramData, System32 and installed application state must not
 be removed. For unsupported maintenance, explain the limit; never invent a raw

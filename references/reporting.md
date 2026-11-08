@@ -17,7 +17,7 @@ bytes are not necessarily uniquely owned or physically recoverable. Unsupported
 allocation measurement is `null`, not zero-sized storage.
 
 After execution, report approved count, successful/verified moves, failed attempts,
-unattempted IDs, before and after available bytes, observed delta, reversibility,
-quarantine location, and follow-up. A positive delta may be unrelated system activity;
-quarantine itself frees no file allocation and journal writes can reduce free space.
+unattempted IDs, before and after available bytes per volume, observed delta, the
+permanent-removal warning, and follow-up. A positive delta may be unrelated system activity;
+snapshots, shared blocks and journal writes can reduce the observed change.
 No performance improvement is guaranteed.

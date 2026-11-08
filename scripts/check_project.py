@@ -71,16 +71,16 @@ def check():
             assert file.name == '_windows_file.py' and len(native_deletes) == 1, 'Only one native Windows removal disposition is permitted'
             guard = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'mark_for_removal')
             assert native_deletes[0] in list(ast.walk(guard)), 'Native removal must stay in its guarded handle primitive'
-        if file.name == "_purge.py":
+        if file.name == "_posix_file.py":
             removals = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "unlink"]
-            execute = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "execute")
-            assert len(removals) == 1 and removals[0] in list(ast.walk(execute)), "Only one guarded private-quarantine unlink is permitted"
+            guard = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "mark_for_removal")
+            assert len(removals) == 1 and removals[0] in list(ast.walk(guard)), "Only one guarded POSIX handle removal is permitted"
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue
             name = node.func.id if isinstance(node.func, ast.Name) else getattr(node.func, "attr", "")
-            permitted_purge = file.name == "_purge.py" and name == "unlink" and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and node.func.value.id == "os"
-            assert name not in forbidden or permitted_purge, f"Forbidden runtime operation: {file.name}:{node.lineno}"
+            permitted = file.name == "_posix_file.py" and name == "unlink" and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and node.func.value.id == "os"
+            assert name not in forbidden or permitted, f"Forbidden runtime operation: {file.name}:{node.lineno}"
             assert not (name == "system" and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and node.func.value.id == "os"), "OS shell execution forbidden"
             assert not any(k.arg == "shell" and not (isinstance(k.value, ast.Constant) and k.value.value is False) for k in node.keywords), "Shell execution forbidden"
     cases = json.loads((BASE / "evals/evals.json").read_text(encoding="utf-8"))

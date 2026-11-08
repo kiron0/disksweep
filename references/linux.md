@@ -12,8 +12,9 @@ an explicitly selected mount root is its own separate authorization scope.
 Read-only native probes may include `journalctl --disk-usage` or a distribution's
 package-cache inventory. System log retention and package maintenance must use the
 native manager after separate scope review. Do not invoke blanket package purges,
-`rm -rf`, journal vacuuming, or Docker pruning from this skill's bytecode approval.
+`rm -rf`, journal vacuuming, or Docker pruning from this skill's removal approval.
 
-POSIX bytecode quarantine requires user-owned single-link artifacts, a corresponding
-source and project marker, same-filesystem private state, stopped workloads, exact
-approval, and runtime-matching bytecode magic. Root privilege is never requested.
+Exact approved permanent removal uses POSIX directory handles, the same flow as macOS
+and Windows. It requires user-owned regular single-link files, a private records
+directory outside the scanned roots, stopped workloads and one exact approval.
+Root privilege is never requested.

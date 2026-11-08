@@ -48,11 +48,10 @@ def operation_report(request):
     core.require(isinstance(result["id"], str) and core.re.fullmatch(r"[a-f0-9]{32}", result["id"]), "Invalid report operation identifier")
     attempted = {x["candidate_id"] for x in result["items"]}
     core.require(attempted <= approved, "Operation contains items outside the reported plan")
-    core.require(all(x["status"] in {"quarantined", "permanently-removed", "failed-stop"} for x in result["items"]), "Invalid operation status")
-    successful = [x for x in result["items"] if x["status"] in {"quarantined", "permanently-removed"}]
-    verified = sum(bool(x.get("verified", x.get("verified_absent", False))) for x in successful)
+    core.require(all(x["status"] in {"permanently-removed", "failed-stop"} for x in result["items"]), "Invalid operation status")
+    successful = [x for x in result["items"] if x["status"] == "permanently-removed"]
+    verified = sum(bool(x.get("verified_absent", False)) for x in successful)
     failed = sum(x["status"] == "failed-stop" for x in result["items"])
-    irreversible = result.get("irreversible", False)
     lines = ["# Swipr Cleanup Report", "", "Operation: " + result["id"],
              "Status: " + ("verified" if result["all_verified"] else "partial or verification incomplete"),
              "", f"Approved: {len(approved)}; processed: {len(successful)}; verified: {verified}; failed: {failed}; unattempted: {len(approved - attempted)}.",
@@ -61,7 +60,7 @@ def operation_report(request):
              "| Candidate ID | Status |", "|---|---|"]
     lines += [f"| {x['candidate_id']} | {x['status']} |" for x in result["items"]]
     lines += [f"| {x} | unattempted |" for x in sorted(approved - attempted)]
-    lines += ["", "Permanent removal cannot be undone from quarantine." if irreversible else "Quarantine retains allocation. Restoration requires approval and skips existing originals; no immediate space is reclaimed."]
+    lines += ["", "Permanent removal bypasses Trash and Recycle Bin and cannot be undone by Swipr."]
     return {"markdown": "\n".join(lines) + "\n", "shareable": True}
 
 
@@ -190,7 +189,7 @@ def recommendations(request):
                      "application": project["application"] if project else entry["application"],
                      "classification": kind, "logical_bytes": entry["logical_bytes"],
                      "allocated_bytes": entry["allocated_bytes"], "potential_reclaimable_upper_bound": entry["allocated_bytes"],
-                     "estimated_immediate_free_bytes": 0 if entry["strategy"] == "quarantine-bytecode" else None,
+                     "estimated_immediate_free_bytes": None,
                      "mechanism": entry["strategy"] if not project else project["mechanism"],
                      "evidence": project or entry["evidence"], "reason": entry["reason"] if not project else "Recognized project marker and exact tool output path",
                      "side_effects": project["side_effects"] if project else entry["side_effects"],
@@ -205,7 +204,7 @@ def recommendations(request):
 def sort_entries(entries, sort_by="size"):
     keys = {"size": lambda e: -e["logical_bytes"], "oldest": lambda e: e["identity"]["mtime_ns"],
             "location": lambda e: e["path"], "type": lambda e: Path(e["path"]).suffix.lower(),
-            "application": lambda e: e["application"], "recoverability": lambda e: (e["strategy"] != "quarantine-bytecode", e["recovery"])}
+            "application": lambda e: e["application"], "recoverability": lambda e: (e["classification"] != "SAFE-CANDIDATE", e["recovery"])}
     core.require(sort_by in keys, "Unsupported sort order")
     return sorted(entries, key=keys[sort_by])
 

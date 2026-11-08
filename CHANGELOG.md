@@ -17,9 +17,19 @@
   A 50,000-file audit dropped from about 50 to 4.5 seconds on the test machine.
 - Project build-artifact analysis now covers up to 100,000 entries, matching the full
   scan limit, instead of reporting partial analysis after 20,000.
-- Refuse a reused quarantine approval with "Approval already used" before revalidating
-  the plan, instead of a misleading changed-file error.
-- Offer native cleanup review on Windows when no permanent-removal plan is available.
+- Use one cleanup flow on macOS, Linux and Windows: scan, exact digest-bound removal
+  plan, one irreversible approval, permanent removal and verification. A new POSIX
+  directory-handle backend matches the Windows NTFS-handle backend; only that native
+  primitive differs per OS. The full scan now prepares `removal_plan` on every OS.
+- Remove the POSIX bytecode quarantine, restore and separate purge workflow, including
+  `plan create/show/validate/purge`, `approve`, `clean quarantine/restore/purge`,
+  their helper scripts and schemas. Bytecode is now removed through the same exact
+  plan and still must be at least 24 hours old.
+- Removal checks every selected file before removing any, then reopens and rechecks
+  each one before removal, so large plans no longer hold one handle per file.
+  Records must be outside the scanned roots and owner-only on POSIX. Free space is
+  measured per volume. `history operations` lists removal records on every OS.
+- Offer native cleanup review on any OS when no permanent-removal plan is available.
 
 ## 0.1.4 — 2026-11-08
 

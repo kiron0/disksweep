@@ -15,7 +15,8 @@ PATH presence only; it does not claim compatible tool versions or that paths are
 Before native maintenance, inspect the installed tool's documentation/version and a
 supported preview where available. Offline dependencies may be irreplaceable today.
 
-Python bytecode quarantine is the single executable strategy. Project-marker evidence,
-source identity, age, link count, ownership, stopped-workload confirmation, and magic
-validation are independent gates. The interpreter will recompile after quarantine.
-Other developer categories remain REVIEW or PROTECTED, even when reproducible.
+Python bytecode is the single SAFE-CANDIDATE rule. Project-marker evidence, source
+identity, age, link count and ownership are independent gates before exact approved
+removal. The interpreter recompiles removed bytecode. Recognized package and build
+caches are REVIEW findings that may enter an exact plan for explicit approval;
+project build outputs and other developer categories stay REVIEW or PROTECTED.

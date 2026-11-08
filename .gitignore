@@ -65,9 +65,7 @@ Desktop.ini
 /approval.json
 /operation.json
 /verified.json
-/purge-*.json
 /remove*.json
 /report.md
 /private-report.md
 /cleanup-report.md
-/purge-report.md

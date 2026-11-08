@@ -1,32 +1,24 @@
 # Recovery and interrupted operations
 
-Quarantine is a same-filesystem rename, not Trash and not a backup. It retains all
-allocated data, so its expected immediate reclamation is zero. The store must be
-outside every scan root, on the candidate's filesystem, and private to the user.
-No space-consuming copy fallback or automatic retention expiration exists. Retain
-quarantine until the user resolves it. A separate irreversible purge plan may remove
-exact, unchanged, single-link private bytecode quarantine after fresh approval.
-Purged files cannot be recovered from quarantine; journal writes and snapshots can
-limit the observed free-space change.
+Permanent removal is the only file-changing action, on every OS. It bypasses Trash
+and Recycle Bin and keeps no copy, so Swipr cannot undo it. Recover regenerated data
+from its source: Python recompiles bytecode, package managers refetch caches, and
+build tools rebuild outputs where their inputs and tooling remain available.
+Snapshots, shared blocks and open handles can limit the observed free-space change.
 
-Before moving anything, `execute.py` writes signed `operation-<id>.json` containing
-intent and every pending member. Each attempted item gets a signed `item-<id>.json`.
-A completed invocation writes `result-<operation-id>.json`. Receipt consumption occurs
-before actions, so a crash cannot silently replay the same approval.
+Before removing anything, `execute.py` writes `remove-used-<plan-id>.json` in the
+private records directory. It holds the full plan and the selected IDs, and its
+exclusive creation consumes the plan, so a crash can never silently replay the same
+approval. Each attempted file gets `remove-attempt-<operation-id>-<id>.json` before
+its removal is requested. A completed invocation writes `remove-result-<operation-id>.json`.
 
-After interruption, inspect the operation intent, item journals, exact source names,
-and `quarantine-<operation-id>/`. A move can finish before its item journal is written.
-Do not assume missing journal rows mean no action occurred. Do not edit signatures,
-blindly rerun, or delete either copy. Reconcile identity metadata and obtain fresh
-approval for any new actions. Automatic interrupted-operation resumption is not provided.
+After interruption, run `history operations` with the same records directory. An
+operation without a result record is `interrupted-or-pending`. Compare its attempt
+records with the actual file names: a removal can finish before its result is written.
+Do not assume a missing result means no action occurred. Do not edit records or
+blindly rerun. Rescan, prepare a fresh plan and obtain fresh approval for any new action.
+Automatic interrupted-operation resumption is not provided.
 
-For a completed result, `restore.py` requires user approval and verifies saved quarantine
-identities. It uses a hard link to restore each original name without replacing anything.
-The quarantine link is retained, so restoration does not allocate a second copy and
-later writes through either link affect the same inode. Restoration is limited to
-disposable bytecode; it is not a general document recovery tool. If the original file
-has already been regenerated or a parent changed, restoration skips it. Inspect failures.
-
-Quarantine objects are not read-only snapshots. A malicious concurrent process or a
-modified state store is beyond the trust boundary. Never promise undo for native
-browser clears, cache purges, Trash emptying, or irreversible OS maintenance.
+A malicious concurrent process or a modified records directory is beyond the trust
+boundary. Never promise undo for removed files, native browser clears, cache purges,
+Trash emptying, or irreversible OS maintenance.

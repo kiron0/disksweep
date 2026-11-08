@@ -1,11 +1,8 @@
 """Filesystem fixtures only: these tests never scan a real user home."""
-import copy
-import importlib.util
 import json
 import os
 from pathlib import Path
 import py_compile
-import stat
 import subprocess
 import sys
 import tempfile
@@ -39,17 +36,6 @@ class Fixture(unittest.TestCase):
     def candidate(self, inventory=None):
         return next(x for x in (inventory or self.inventory())["entries"] if x["path"] == str(self.bytecode))
 
-    def plan(self):
-        inventory = self.inventory()
-        candidate = self.candidate(inventory)
-        return core.create_plan({"state_dir": str(self.state), "inventory": inventory, "candidate_ids": [candidate["id"]]})
-
-    def approval(self, plan):
-        return core.approve({"state_dir": str(self.state), "plan_id": plan["id"], "plan_digest": plan["digest"],
-                             "user_approved": True, "workload_stopped": True, "approval_note": "Fixture user approved exact quarantine plan"})
-
-    def execute(self, plan, receipt):
-        return core.execute({"state_dir": str(self.state), "plan_id": plan["id"], "approval_id": receipt["id"]})
 
 
 class InventoryTests(Fixture):
@@ -142,7 +128,7 @@ class AnalysisTests(Fixture):
         report = core.human_report({"inventory": self.inventory()})["markdown"]
         self.assertNotIn(str(self.root), report)
         self.assertNotIn(secret.name, report)
-        self.assertIn("0 bytes", report)
+        self.assertIn("Nothing is removed without an exact approved plan.", report)
 
     def test_malicious_filenames_are_data(self):
         if os.name == "nt":
@@ -154,97 +140,7 @@ class AnalysisTests(Fixture):
         self.assertIn("\\n", report)
 
 
-@unittest.skipUnless(os.name == "posix", "Signed private state requires native POSIX permissions")
-class ApprovalTests(Fixture):
-    def test_plan_binds_exact_inventory(self):
-        plan = self.plan()
-        self.assertEqual(plan["estimated_immediate_free_bytes"], 0)
-        self.assertTrue(self.bytecode.exists())
-        self.assertEqual(plan["entries"][0]["path"], str(self.bytecode))
-
-    def test_forged_inventory_cannot_promote_source(self):
-        inventory = self.inventory()
-        source = next(x for x in inventory["entries"] if x["path"] == str(self.source))
-        source["classification"] = "SAFE-CANDIDATE"
-        source["strategy"] = "quarantine-bytecode"
-        with self.assertRaises(core.Refusal):
-            core.create_plan({"state_dir": str(self.state), "inventory": inventory, "candidate_ids": [source["id"]]})
-
-    def test_user_approval_and_workload_confirmation_required(self):
-        plan = self.plan()
-        with self.assertRaises(core.Refusal):
-            core.approve({"state_dir": str(self.state), "plan_id": plan["id"], "plan_digest": plan["digest"], "user_approved": False})
-        with self.assertRaises(core.Refusal):
-            core.approve({"state_dir": str(self.state), "plan_id": plan["id"], "plan_digest": "forged", "user_approved": True, "workload_stopped": True})
-
-    def test_changed_candidate_and_source_rejected(self):
-        plan = self.plan()
-        self.source.write_text("answer = 43\n")
-        with self.assertRaises(core.Refusal):
-            self.approval(plan)
-
-    def test_recent_bytecode_rejected(self):
-        os.utime(self.bytecode, None)
-        with self.assertRaises(core.Refusal):
-            self.plan()
-
-    def test_expired_plan(self):
-        plan = self.plan()
-        with patch.object(core.time, "time", return_value=time.time() + 1000):
-            with self.assertRaises(core.Refusal):
-                self.approval(plan)
-
-    def test_signed_plan_tampering(self):
-        plan = self.plan()
-        file = self.state / ("plan-" + plan["id"] + ".json")
-        data = json.loads(file.read_text()); data["payload"]["entries"][0]["path"] = str(self.source)
-        file.write_text(json.dumps(data))
-        with self.assertRaises(core.Refusal):
-            self.approval(plan)
-
-    @unittest.skipUnless(os.name == "posix", "POSIX permissions")
-    def test_state_permissions(self):
-        self.state.mkdir(mode=0o755)
-        self.state.chmod(0o755)
-        with self.assertRaises(core.Refusal):
-            self.plan()
-
-    def test_state_outside_scope(self):
-        self.state = self.root / "state"
-        with self.assertRaises(core.Refusal):
-            self.plan()
-
-
-@unittest.skipUnless(os.name == "posix", "Execution is deliberately disabled on Windows")
-class ExecutionTests(Fixture):
-    def test_quarantine_verify_restore_without_overwrite(self):
-        expected = self.bytecode.read_bytes()
-        plan = self.plan(); receipt = self.approval(plan)
-        result = self.execute(plan, receipt)
-        self.assertEqual(result["status"], "complete")
-        self.assertFalse(self.bytecode.exists())
-        self.assertEqual(Path(result["items"][0]["quarantined"]).read_bytes(), expected)
-        verified = core.verify({"state_dir": str(self.state), "operation_id": result["id"]})
-        self.assertTrue(verified["all_verified"])
-        restored = core.restore({"state_dir": str(self.state), "operation_id": result["id"], "user_approved": True})
-        self.assertEqual(restored["items"][0]["status"], "restored-quarantine-link-retained")
-        self.assertEqual(self.bytecode.read_bytes(), expected)
-        self.bytecode.write_bytes(b"new bytecode")
-        restored = core.restore({"state_dir": str(self.state), "operation_id": result["id"], "user_approved": True})
-        self.assertEqual(restored["items"][0]["status"], "skipped")
-        self.assertEqual(self.bytecode.read_bytes(), b"new bytecode")
-        self.assertTrue(self.source.exists())
-
-    def test_approval_replay_rejected(self):
-        plan = self.plan(); receipt = self.approval(plan)
-        result = self.execute(plan, receipt)
-        # Already moved files are rejected before a second operation begins.
-        with self.assertRaises((core.Refusal, FileNotFoundError, FileExistsError)):
-            self.execute(plan, receipt)
-        self.assertTrue((self.state / ("used-" + receipt["id"] + ".json")).exists())
-        with self.assertRaisesRegex(core.Refusal, "Approval already used"):
-            self.execute(plan, receipt)
-
+class CoreTests(Fixture):
     def test_rule_catalog_reads_are_isolated_copies(self):
         first = core.read_rules()
         first[0]["signatures"].append("tampered/path")
@@ -272,49 +168,6 @@ class ExecutionTests(Fixture):
         self.assertFalse(core.inside(Path("/a/bc"), Path("/a/b")))
         self.assertFalse(core.inside(Path("/a"), Path("/a/b")))
 
-    def test_symlink_replacement_after_approval(self):
-        plan = self.plan(); receipt = self.approval(plan)
-        self.bytecode.unlink(); self.bytecode.symlink_to(self.source)
-        with self.assertRaises(core.Refusal):
-            self.execute(plan, receipt)
-        self.assertEqual(self.source.read_text(), "answer = 42\n")
-
-    def test_wrong_bytecode_magic_stops_without_move(self):
-        self.bytecode.write_bytes(b"not a Python bytecode file")
-        old = time.time() - 3 * 86400; os.utime(self.bytecode, (old, old))
-        plan = self.plan(); receipt = self.approval(plan)
-        result = self.execute(plan, receipt)
-        self.assertEqual(result["status"], "partial")
-        self.assertTrue(self.bytecode.exists())
-
-    def test_changed_file_after_approval(self):
-        plan = self.plan(); receipt = self.approval(plan)
-        self.bytecode.write_bytes(b"different")
-        with self.assertRaises(core.Refusal):
-            self.execute(plan, receipt)
-        self.assertEqual(self.bytecode.read_bytes(), b"different")
-
-    def test_native_operation_failure_journaled(self):
-        plan = self.plan(); receipt = self.approval(plan)
-        with patch.object(core.os, "rename", side_effect=OSError("fixture failure")):
-            result = self.execute(plan, receipt)
-        self.assertEqual(result["status"], "partial")
-        self.assertTrue(self.bytecode.exists())
-        self.assertTrue((self.state / ("result-" + result["id"] + ".json")).exists())
-
-    def test_final_name_race_preserves_unexpected_object(self):
-        plan = self.plan(); receipt = self.approval(plan)
-        actual_rename = os.rename
-        def race(src, dst, **kwargs):
-            self.bytecode.unlink()
-            self.bytecode.write_bytes(b"concurrent user data")
-            return actual_rename(src, dst, **kwargs)
-        with patch.object(core.os, "rename", side_effect=race):
-            result = self.execute(plan, receipt)
-        self.assertEqual(result["status"], "partial")
-        self.assertEqual(self.bytecode.read_bytes(), b"concurrent user data")
-        self.assertEqual(Path(result["items"][0]["quarantined"]).read_bytes(), b"concurrent user data")
-
 
 class ProtocolTests(Fixture):
     def test_probe_does_not_advertise_hashing_without_safe_handles(self):
@@ -322,7 +175,8 @@ class ProtocolTests(Fixture):
             result = core.probe({"path": str(self.root)})
         self.assertTrue(result["capabilities"]["metadata"])
         self.assertFalse(result["capabilities"]["content_hashing"])
-        self.assertFalse(result["capabilities"]["quarantine"])
+        if os.name == "posix":
+            self.assertFalse(result["capabilities"]["direct_remove"])
 
     def test_json_helper_roundtrip(self):
         script = core.BASE / "scripts/inventory.py"

@@ -61,11 +61,12 @@ class Overview(Fixture):
         self.assertFalse(result['review_prompt']['requires_response'])
         self.assertEqual(result['review_prompt']['options'], [])
 
-    def test_missing_secure_handles_does_not_offer_bytecode_cleanup(self):
-        result = overview.run({'roots': [str(self.root)]})
-        result['discovery']['capabilities']['quarantine'] = False
-        result['discovery']['platform'] = 'linux'
-        self.assertEqual(overview.review_prompt(result)['options'][0]['id'], 'native_cleanup')
+    def test_missing_removal_handles_offer_native_review_only(self):
+        with patch.object(overview.core, 'removal_supported', return_value=False):
+            result = overview.run({'roots': [str(self.root)]})
+        self.assertNotIn('removal_plan', result)
+        self.assertEqual(result['review_prompt']['options'][0]['id'], 'native_cleanup')
+        self.assertTrue(self.bytecode.exists())
 
     def test_full_scan_command_saves_result_and_reuses_existing_review_inputs(self):
         output = self.base / 'full.json'
@@ -97,7 +98,7 @@ class Overview(Fixture):
         question = overview.review_prompt(result)
         self.assertFalse(any(option['id'] == 'remove_selected' for option in question['options']))
         self.assertEqual(question['options'][0]['id'], 'native_cleanup')
-        self.assertEqual(question['options'][0]['label'], 'Review Windows cleanup')
+        self.assertEqual(question['options'][0]['label'], 'Review native cleanup')
         self.assertEqual(len(question['options']), 3)
 
 

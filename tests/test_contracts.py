@@ -30,24 +30,6 @@ class ContractTests(Fixture):
         from _audit import recommendations
         self.validate("proposal", recommendations({"inventory": inventory}))
 
-    @unittest.skipUnless(os.name == "posix", "POSIX private-state workflow")
-    def test_signed_plan_approval_and_execution_contracts(self):
-        plan = self.plan(); receipt = self.approval(plan)
-        self.validate("plan", plan)
-        self.validate("approval", receipt)
-        self.validate("operation", self.execute(plan, receipt))
-
-    @unittest.skipUnless(os.name == "posix", "POSIX private quarantine")
-    def test_permanent_cleanup_contracts(self):
-        import _purge
-        plan = self.plan(); receipt = self.approval(plan); operation = self.execute(plan, receipt)
-        purge_plan = _purge.create_plan({"state_dir": str(self.state), "operation_id": operation["id"], "candidate_ids": [operation["items"][0]["candidate_id"]]})
-        self.validate("purge-plan", purge_plan)
-        approval = _purge.approve({"state_dir": str(self.state), "plan_id": purge_plan["id"], "plan_digest": purge_plan["digest"], "user_approved": True, "acknowledge_irreversible": True, "approval_note": "Synthetic exact-scope permanent deletion approval"})
-        self.validate("purge-approval", approval)
-        result = _purge.execute({"state_dir": str(self.state), "plan_id": purge_plan["id"], "approval_id": approval["id"]})
-        self.validate("purge-result", result)
-
 
 class RuleTests(Fixture):
     def test_windows_directory_cache_zeros_do_not_hide_files(self):
@@ -78,7 +60,7 @@ class RuleTests(Fixture):
     def test_each_audit_signature_and_protected_override(self):
         rules = core.read_rules()
         for rule in rules:
-            if rule["strategy"] == "quarantine-bytecode" or rule.get("project_markers"):
+            if rule["strategy"] == "remove-exact" or rule.get("project_markers"):
                 continue
             with self.subTest(rule=rule["id"]), patch.object(core, "platform_id", return_value=rule["platforms"][0]):
                 path = self.root / rule["signatures"][0].replace("*", "fixture") / "resource.bin"
@@ -102,14 +84,17 @@ class RuleTests(Fixture):
             self.assertEqual(core.classify(path, self.root, {}, [rule])[1], "PROTECTED")
 
     def test_rule_catalog_change_invalidates_plan(self):
-        if os.name != "posix":
-            self.skipTest("POSIX private state")
-        plan = self.plan()
-        original = core.read_rules()
-        changed = [{**x, "reason": x["reason"] + " changed"} for x in original]
+        if not core.removal_supported():
+            self.skipTest("Exact removal handles are unavailable")
+        import _remove as removal
+        inventory = self.inventory()
+        plan = removal.create_plan({"inventory": inventory, "candidate_ids": [self.candidate(inventory)["id"]]})
+        changed = [{**x, "reason": x["reason"] + " changed"} for x in core.read_rules()]
         with patch.object(core, "read_rules", return_value=changed):
             with self.assertRaises(core.Refusal):
-                self.approval(plan)
+                removal.execute({"plan": plan, "plan_digest": plan["digest"], "candidate_ids": [plan["entries"][0]["id"]],
+                                 "state_dir": str(self.state), "user_approved": True, "acknowledge_irreversible": True})
+        self.assertTrue(self.bytecode.exists())
 
     def test_linux_bind_mount_inventory_and_execution(self):
         with patch.object(core, "mount_points", return_value={self.bytecode.parent}):

@@ -40,10 +40,9 @@ There is no separate `swipr` executable or npm package to install.
 | `find` | `large`, `directories`, `duplicates` | Discover storage consumers |
 | `explain` | `--input AUDIT_JSON --candidate FULL_ID` | Explain saved findings without rescanning |
 | `inspect` | `apps`, `storage`, `docker`, `activity`, `leftovers`, `trash`, `recycle-bin` | Inspect native and protected metadata |
-| `plan` | `remove`, `create`, `purge`, `show`, `validate` | Prepare and review exact plans |
-| `approve` | `quarantine`, `purge` | Record fresh, explicit approval |
-| `clean` | `remove`, `quarantine`, `restore`, `purge` | Run supported approved actions |
-| `verify` | `--kind quarantine`, `--kind purge`, `--kind remove` | Verify an operation |
+| `plan` | `remove` | Prepare an exact permanent-removal plan |
+| `clean` | `remove` | Run the exact approved removal |
+| `verify` | `--kind remove` | Verify a removal operation |
 | `report` | `audit`, `operation` | Produce Markdown reports |
 | `history` | `save`, `show`, `compare`, `operations` | Private snapshots and operation records |
 | `profile` | `validate`, `save`, `show` | Restrictive preferences |
@@ -80,14 +79,14 @@ any supported exact plan before its actual approval prompt, then executes and
 verifies without asking again for every internal step. The terminal adapter
 prints choices; it does not create interactive agent widgets by itself.
 
-Windows offers direct permanent removal when an eligible plan is available,
+Every OS offers direct permanent removal when an eligible plan is available,
 large-file review, or finishing. The host displays the exact plan and permanent
 warning before accepting checked file IDs or a batch choice. Submit approval once;
 execution and verification follow without another confirmation or opening Settings.
 No destructive choice should be preselected. If no eligible plan exists, offer
 review/finish without inventing a removal action.
 
-## Direct Windows removal
+## Direct permanent removal (every OS)
 
 The full audit contains `removal_plan` for eligible unlocked recognized findings.
 Alternatively prepare a specific selection:
@@ -111,18 +110,20 @@ python scripts/swipr.py verify --kind remove --state-dir "/path/to/private-recor
 `--input` accepts the full audit containing `removal_plan`, or a standalone plan.
 Only supplied checked IDs are removed. A plan can be consumed once and expires in
 15 minutes. Use the digest shown before approval, never a newly reread/edited digest.
-Local fixed-drive NTFS, current-user ownership, regular single-link files and
-exclusive handles are required. No wildcards, directories, recursion, force,
+Current-user ownership, regular single-link local files and native handles are
+required: POSIX directory handles on macOS and Linux, exclusive handles on local
+fixed-drive NTFS on Windows. No wildcards, directories, recursion, force, Trash,
 Recycle Bin or undo. Locked, changed, protected or unsupported files stop execution.
-Private operation/attempt records precede deletion. See the Windows reference for
-trust boundaries. POSIX continues to use its bytecode quarantine/purge workflow.
+The records directory must be outside the scanned roots and, on POSIX, owner-only.
+Private intent/attempt records precede deletion. Python bytecode must be at least
+24 hours old. See the platform references for trust boundaries.
 
 ## Help and capability discovery
 
 ```sh
 python scripts/swipr.py help
 python scripts/swipr.py help scan deep
-python scripts/swipr.py help approve purge
+python scripts/swipr.py help clean remove
 python scripts/swipr.py --version
 python scripts/swipr.py doctor --path "/path/to/volume"
 python scripts/swipr.py doctor --json --output capabilities.json
@@ -222,67 +223,18 @@ context, which may be remote. No native inspection command mutates storage,
 force-closes an app, empties Trash, prunes Docker, or requests administrator access.
 Unknown active use and possible leftovers remain uncertain.
 
-## Plan and approve quarantine
-
-Use a private state directory **outside all scanned roots**, on the same filesystem.
-It must be owned by you with owner-only permissions. Review actual IDs in `audit.json`.
-Planning persists metadata but does not move files.
-
-```sh
-python scripts/swipr.py plan create --input audit.json --candidate CANDIDATE_ID --state-dir "/path/to/private-state" --output plan.json
-python scripts/swipr.py plan show --state-dir "/path/to/private-state" --plan-id PLAN_ID
-python scripts/swipr.py plan validate --state-dir "/path/to/private-state" --plan-id PLAN_ID
-```
-
-Only after reviewing exact members, side effects, recovery, digest and expiration,
-and stopping the generating Python workload:
-
-```sh
-python scripts/swipr.py approve quarantine --state-dir "/path/to/private-state" --plan-id PLAN_ID --digest DISPLAYED_DIGEST --confirm --workload-stopped --note "Approved the exact displayed quarantine plan" --output approval.json
-python scripts/swipr.py clean quarantine --state-dir "/path/to/private-state" --plan-id PLAN_ID --approval-id APPROVAL_ID --output operation.json
-python scripts/swipr.py verify --state-dir "/path/to/private-state" --operation-id OPERATION_ID --output verified.json
-```
-
-Plans expire after 15 minutes; receipts last at most five minutes and can be used
-once. Changed files fail revalidation. Quarantine is limited to eligible bytecode
-on POSIX and frees no immediate disk space. An agent may not manufacture confirmation.
-
-## Restore or permanently remove private quarantine
-
-Restore without overwriting existing files:
-
-```sh
-python scripts/swipr.py clean restore --state-dir "/path/to/private-state" --operation-id OPERATION_ID --confirm
-```
-
-Permanent removal is a separate, irreversible approval workflow. It accepts only
-exact verified private bytecode quarantine, not original files or arbitrary paths:
-
-```sh
-python scripts/swipr.py plan purge --state-dir "/path/to/private-state" --operation-id OPERATION_ID --candidate CANDIDATE_ID --output purge-plan.json
-python scripts/swipr.py plan show --kind purge --state-dir "/path/to/private-state" --plan-id PURGE_PLAN_ID
-python scripts/swipr.py approve purge --state-dir "/path/to/private-state" --plan-id PURGE_PLAN_ID --digest DISPLAYED_PURGE_DIGEST --confirm --acknowledge-irreversible --note "Approved permanent removal of the displayed private bytecode quarantine" --output purge-approval.json
-python scripts/swipr.py clean purge --state-dir "/path/to/private-state" --plan-id PURGE_PLAN_ID --approval-id PURGE_APPROVAL_ID --output purge-operation.json
-python scripts/swipr.py verify --kind purge --state-dir "/path/to/private-state" --operation-id PURGE_OPERATION_ID --output purge-verified.json
-```
-
-Pass `--policy FILE` or `--profile-id ID` to `plan purge` when restrictions apply.
-A no-permanent-delete policy blocks it. A quarantine receipt cannot authorize purge.
-After failures or interruption, inspect signed records; never blindly retry.
-
 ## Reports
 
 ```sh
 python scripts/swipr.py report audit --input audit.json --output report.md
 python scripts/swipr.py report audit --input audit.json --private --output private-report.md
-python scripts/swipr.py report operation --input verified.json --plan plan.json --output cleanup-report.md
-python scripts/swipr.py report operation --input purge-verified.json --plan purge-plan.json --output purge-report.md
+python scripts/swipr.py report operation --input verified.json --plan remove-plan.json --output cleanup-report.md
 ```
 
 Audit reports are redacted by default. Verified operation reports use opaque IDs.
 `--private` includes local paths; keep that report private. Report output is Markdown;
 add `--json` to save a JSON envelope instead. Existing output files are never overwritten.
-An output file is reserved before changes, so an existing file cannot cause a receipt
+An output file is reserved before changes, so an existing file cannot cause a plan
 to be consumed or an operation to run without saving its result.
 
 ## Profiles and history

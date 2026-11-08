@@ -17,7 +17,7 @@ only for local inspection of recorded paths and source/project metadata.
 If the file has changed, explanation still describes the snapshot. A new plan
 must revalidate the live file; approval is a separate step. If guidance reports
 partial coverage or only protected findings, address those limits before proposing
-cleanup. Quarantine alone recovers no space.
+cleanup. Removal is permanent on every OS; Swipr cannot undo it.
 
 ## Audit several volumes
 
@@ -25,8 +25,8 @@ cleanup. Quarantine alone recovers no space.
 python scripts/swipr.py scan deep --root "/volume-one/project" --root "/volume-two/cache" --exclude "/volume-one/project/offline" --max-entries 50000 --max-seconds 30 --output multi-volume.json
 ```
 
-Each selected root is separately authorized. Nested mounts are skipped; a quarantine
-plan may use only one filesystem and private state on that same filesystem.
+Each selected root is separately authorized. Nested mounts are skipped. A removal plan
+reports free space per volume; keep its records directory outside every scanned root.
 
 ## Review archived downloads
 
@@ -91,6 +91,6 @@ when sharing. Saving and external sharing need the user's consent.
 python scripts/swipr.py history operations --state-dir "/path/to/private-state" --json
 ```
 
-Inspect intent, item and result records plus the actual original/quarantine locations.
-A move or unlink can complete before its outcome record is saved. Reconcile what
+Inspect intent, attempt and result records plus the actual file names.
+A removal can complete before its outcome record is saved. Reconcile what
 happened before any new action; obtain fresh approval for a changed or expired scope.

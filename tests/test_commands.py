@@ -37,7 +37,7 @@ class Commands(Fixture):
         before = set(self.base.rglob("*"))
         self.assertIn("scan", self.call("help").stdout)
         for path in (("scan", "quick"), ("find", "large"), ("inspect", "apps"),
-                     ("plan", "create"), ("approve", "purge"), ("clean", "purge"),
+                     ("plan", "remove"), ("clean", "remove"), ("verify",),
                      ("report", "operation"), ("history", "save"), ("profile", "save"), ("catalog", "list")):
             with self.subTest(path=path):
                 self.assertIn("usage:", self.call("help", *path).stdout)
@@ -115,31 +115,28 @@ class Commands(Fixture):
         protected = self.base / "documents"; protected.mkdir()
         (protected / "keep.txt").write_text("keep")
         result = self.data("scan", "quick", "--root", protected)
-        self.assertEqual(result["guidance"]["recorded_bytecode_candidates"], 0)
+        self.assertEqual(result["guidance"]["recorded_removal_candidates"], 0)
         self.assertFalse(result["guidance"]["suggested_arguments"])
         self.assertIn("Preserve protected", result["guidance"]["message"])
         audit_result = self.inventory(max_entries=1)
         guidance = guide.next_steps(audit_result)
         self.assertFalse(guidance["coverage_complete"])
         self.assertIn("partial", guidance["message"])
-        full_inventory = self.inventory()
-        with patch.object(guide.os, "name", "nt"):
-            self.assertEqual(guide.next_steps(full_inventory)["recorded_bytecode_candidates"], 0)
+        self.assertGreaterEqual(guide.next_steps(self.inventory())["recorded_removal_candidates"], 1)
 
     def test_scan_guidance_supplies_exact_review_arguments_without_approval(self):
         file, scanned = self.save_audit()
         selected = self.candidate(scanned["inventory"])["id"]
         guidance = scanned["guidance"]
-        if os.name == "posix":
-            self.assertIn(["explain", "--input", str(file), "--candidate", selected], guidance["suggested_arguments"])
+        self.assertIn(["explain", "--input", str(file), "--candidate", selected], guidance["suggested_arguments"])
         self.assertFalse(guidance["execution_authorized"])
         self.assertTrue(self.bytecode.exists())
         self.assertFalse(self.state.exists())
 
     def test_missing_roots_and_approval_flags_fail_before_state_creation(self):
         self.call("scan", "quick", success=False)
-        self.call("approve", "quarantine", "--state-dir", self.state, "--plan-id", "fake", "--digest", "fake", "--note", "not approval", success=False)
-        self.call("clean", "purge", "--state-dir", self.state, "--plan-id", "fake", success=False)
+        self.call("clean", "remove", "--state-dir", self.state, "--input", self.base / "missing.json", "--digest", "fake", "--candidate", "fake", success=False)
+        self.call("verify", "--state-dir", self.state, success=False)
         self.assertFalse(self.state.exists())
         self.assertTrue(self.source.exists())
 
@@ -194,7 +191,7 @@ class Commands(Fixture):
         output = self.base / "keep.json"; output.write_text("preserve")
         captured = io.StringIO()
         with patch.object(cli, "dispatch", side_effect=AssertionError("must not run")), contextlib.redirect_stdout(captured):
-            code = cli.main(["clean", "purge", "--state-dir", str(self.state), "--plan-id", "fake", "--approval-id", "fake", "--output", str(output), "--json"])
+            code = cli.main(["clean", "remove", "--state-dir", str(self.state), "--input", str(output), "--digest", "fake", "--candidate", "fake", "--confirm-permanent", "--output", str(output), "--json"])
         self.assertEqual(code, 2)
         self.assertEqual(json.loads(captured.getvalue())["error"]["code"], "ALREADY_EXISTS")
         self.assertEqual(output.read_text(), "preserve")
@@ -262,29 +259,25 @@ class Commands(Fixture):
         self.assertEqual(self.data("history", "show", "--state-dir", self.state, "--snapshot-id", snapshot["id"])["id"], snapshot["id"])
         self.assertFalse(self.data("history", "compare", "--before", file, "--after", file)["changed"])
 
-    @unittest.skipUnless(os.name == "posix", "Guarded mutations require POSIX handles")
-    def test_full_command_lifecycle_and_separate_permanent_approval(self):
+    @unittest.skipUnless(core.removal_supported() and os.name == "posix", "Fixture ownership is native on POSIX; Windows removal is covered in test_remove")
+    def test_full_command_lifecycle_with_exact_permanent_approval(self):
         file, scanned = self.save_audit()
         selected = self.candidate(scanned["inventory"])["id"]
         plan_file = self.base / "plan.json"
-        plan = self.data("plan", "create", "--input", file, "--candidate", selected, "--state-dir", self.state, "--output", plan_file)
-        self.assertEqual(self.data("plan", "show", "--state-dir", self.state, "--plan-id", plan["id"])["digest"], plan["digest"])
-        self.assertTrue(self.data("plan", "validate", "--state-dir", self.state, "--plan-id", plan["id"])["valid"])
-        approval = self.data("approve", "quarantine", "--state-dir", self.state, "--plan-id", plan["id"], "--digest", plan["digest"], "--confirm", "--workload-stopped", "--note", "Synthetic exact-scope approval")
-        operation = self.data("clean", "quarantine", "--state-dir", self.state, "--plan-id", plan["id"], "--approval-id", approval["id"])
+        plan = self.data("plan", "remove", "--input", file, "--candidate", selected, "--output", plan_file)
+        self.assertTrue(self.bytecode.exists())
+        self.call("clean", "remove", "--state-dir", self.state, "--input", plan_file, "--digest", "0" * 64, "--candidate", selected, "--confirm-permanent", success=False)
+        self.assertTrue(self.bytecode.exists())
+        operation = self.data("clean", "remove", "--state-dir", self.state, "--input", plan_file, "--digest", plan["digest"], "--candidate", selected, "--confirm-permanent")
+        self.assertTrue(operation["all_verified"])
         verified_file = self.base / "verified.json"
         verified = self.data("verify", "--state-dir", self.state, "--operation-id", operation["id"], "--output", verified_file)
         self.assertTrue(verified["all_verified"])
         self.assertIn("verified: 1", self.call("report", "operation", "--input", verified_file, "--plan", plan_file).stdout)
-        self.assertTrue(self.data("history", "operations", "--state-dir", self.state)["operations"])
-        purge_plan = self.data("plan", "purge", "--state-dir", self.state, "--operation-id", operation["id"], "--candidate", selected)
-        self.assertTrue(self.data("plan", "validate", "--kind", "purge", "--state-dir", self.state, "--plan-id", purge_plan["id"])["valid"])
-        permanent = self.data("approve", "purge", "--state-dir", self.state, "--plan-id", purge_plan["id"], "--digest", purge_plan["digest"], "--confirm", "--acknowledge-irreversible", "--note", "Synthetic separate permanent-removal approval")
-        result = self.data("clean", "purge", "--state-dir", self.state, "--plan-id", purge_plan["id"], "--approval-id", permanent["id"])
-        self.assertTrue(self.data("verify", "--kind", "purge", "--state-dir", self.state, "--operation-id", result["id"])["all_verified"])
+        self.assertEqual(self.data("history", "operations", "--state-dir", self.state)["operations"][0]["status"], "complete")
+        self.call("clean", "remove", "--state-dir", self.state, "--input", plan_file, "--digest", plan["digest"], "--candidate", selected, "--confirm-permanent", success=False)
         self.assertTrue(self.source.exists())
         self.assertFalse(self.bytecode.exists())
-
 
 if __name__ == "__main__":
     unittest.main()

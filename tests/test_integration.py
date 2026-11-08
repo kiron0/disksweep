@@ -28,18 +28,13 @@ class IntegrationTests(Fixture):
         self.assertNotIn(str(self.root), report["markdown"])
         if os.name != "posix":
             return  # Windows deliberately stops after the audit/report boundary.
-        state = {"state_dir": str(self.state)}
-        plan = self.helper("plan", {**state, "inventory": inventory, "candidate_ids": [candidate["id"]]})
-        self.assertTrue(self.helper("validate", {**state, "plan_id": plan["id"]})["valid"])
-        approval = self.helper("approve", {**state, "plan_id": plan["id"], "plan_digest": plan["digest"],
-                                            "user_approved": True, "workload_stopped": True,
-                                            "approval_note": "Synthetic integration fixture approval"})
-        result = self.helper("execute", {**state, "plan_id": plan["id"], "approval_id": approval["id"]})
-        verified = self.helper("verify", {**state, "operation_id": result["id"]})
-        self.assertTrue(verified["all_verified"])
-        restored = self.helper("restore", {**state, "operation_id": result["id"], "user_approved": True})
-        self.assertEqual(restored["items"][0]["status"], "restored-quarantine-link-retained")
+        plan = self.helper("plan", {"inventory": inventory, "candidate_ids": [candidate["id"]]})
         self.assertTrue(self.bytecode.exists())
+        result = self.helper("execute", {"state_dir": str(self.state), "plan": plan, "plan_digest": plan["digest"],
+                                         "candidate_ids": [candidate["id"]], "user_approved": True, "acknowledge_irreversible": True})
+        verified = self.helper("verify", {"state_dir": str(self.state), "operation_id": result["id"]})
+        self.assertTrue(verified["all_verified"])
+        self.assertFalse(self.bytecode.exists())
         self.assertEqual(self.source.read_text(), "answer = 42\n")
 
     def test_skill_archive_is_deterministic_and_contains_runtime_resources(self):
@@ -59,21 +54,9 @@ class IntegrationTests(Fixture):
             self.assertIn("swipr/rules/developer/catalog.json", names)
             self.assertFalse(any("__pycache__" in n or "/.git/" in n or "/tests/" in n for n in names))
 
-    def test_extended_audit_and_permanent_cleanup_json_protocol(self):
+    def test_extended_audit_json_protocol(self):
         audit = self.helper("audit", {"mode": "developer", "roots": [str(self.root)]})
         self.assertFalse(audit["execution_authorized"])
         inventory = audit["inventory"]
         self.assertTrue(self.helper("recommend", {"inventory": inventory})["candidates"])
         self.assertFalse(self.helper("compare", {"before": inventory, "after": inventory})["changes_made"])
-        if os.name != "posix":
-            return
-        state = {"state_dir": str(self.state)}
-        candidate = self.candidate(inventory)
-        plan = self.helper("plan", {**state, "inventory": inventory, "candidate_ids": [candidate["id"]]})
-        approval = self.helper("approve", {**state, "plan_id": plan["id"], "plan_digest": plan["digest"], "user_approved": True, "workload_stopped": True, "approval_note": "Synthetic quarantine approval"})
-        operation = self.helper("execute", {**state, "plan_id": plan["id"], "approval_id": approval["id"]})
-        purge_plan = self.helper("purge_plan", {**state, "operation_id": operation["id"], "candidate_ids": [candidate["id"]]})
-        purge_approval = self.helper("purge_approve", {**state, "plan_id": purge_plan["id"], "plan_digest": purge_plan["digest"], "user_approved": True, "acknowledge_irreversible": True, "approval_note": "Synthetic separate irreversible approval"})
-        result = self.helper("purge_execute", {**state, "plan_id": purge_plan["id"], "approval_id": purge_approval["id"]})
-        self.assertTrue(self.helper("purge_verify", {**state, "operation_id": result["id"]})["all_verified"])
-        self.assertTrue(self.source.exists())

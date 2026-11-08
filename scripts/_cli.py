@@ -11,7 +11,6 @@ import time
 import _audit as audit
 import _core as core
 import _native as native
-import _purge as purge
 import _guide as guide
 import _overview as overview
 import _remove as removal
@@ -82,9 +81,6 @@ def parser():
     def add_state(p):
         p.add_argument("--state-dir", required=True, metavar="PATH")
 
-    def add_plan(p):
-        add_state(p); p.add_argument("--plan-id", required=True)
-
     def add_operation(p):
         add_state(p); p.add_argument("--operation-id", required=True)
 
@@ -139,46 +135,23 @@ def parser():
             p.add_argument("--volume", action="append", required=True, metavar="DRIVE_ROOT")
             p.add_argument("--confirm-scope", action="store_true")
 
-    plans = group("plan", "Create, review, or revalidate exact plans without executing them")
-    p = leaf(plans, 'remove', 'plan', 'Prepare exact permanent Windows removal for a review prompt')
+    plans = group("plan", "Prepare an exact permanent-removal plan without executing it")
+    p = leaf(plans, 'remove', 'plan', 'Prepare exact permanent removal of checked files for a review prompt')
     p.add_argument('--input', required=True, metavar='AUDIT_JSON')
     p.add_argument('--candidate', action='append', required=True, metavar='FULL_ID')
     p.add_argument('--include-personal', action='store_true', help='Only for personal files explicitly selected by the user; never inferred from size or age')
     p.add_argument('--policy', metavar='FILE')
-    p = leaf(plans, "create", "plan", "Create a signed exact bytecode quarantine plan")
-    add_state(p); p.add_argument("--input", required=True, metavar="AUDIT_JSON")
-    p.add_argument("--candidate", action="append", required=True, metavar="ID")
-    p = leaf(plans, "purge", "plan", "Prepare a separate irreversible plan for verified private quarantine")
-    add_operation(p); p.add_argument("--candidate", action="append", required=True, metavar="ID")
-    p.add_argument("--policy", metavar="FILE"); p.add_argument("--profile-id")
-    for name in ("show", "validate"):
-        p = leaf(plans, name, "plan", name.capitalize() + " a signed plan")
-        add_plan(p); p.add_argument("--kind", choices=("quarantine", "purge"), default="quarantine")
 
-    approvals = group("approve", "Record fresh approval of a reviewed exact plan")
-    for name in ("quarantine", "purge"):
-        p = leaf(approvals, name, "approve", "Record explicit " + name + " approval; never infer it")
-        add_plan(p); p.add_argument("--digest", required=True)
-        p.add_argument("--note", required=True, help="Minimal approval record, not a private transcript")
-        p.add_argument("--confirm", action="store_true", required=True)
-        p.add_argument("--workload-stopped" if name == "quarantine" else "--acknowledge-irreversible", action="store_true", required=True)
+    cleans = group("clean", "Execute only an exact reviewed and approved removal plan")
+    p = leaf(cleans, 'remove', 'clean', 'Permanently delete exact checked files; bypasses Trash and Recycle Bin; cannot undo')
+    add_state(p)
+    p.add_argument('--input', required=True, metavar='PLAN_OR_FULL_AUDIT_JSON')
+    p.add_argument('--digest', required=True, help='Exact digest shown before the fresh permanent-deletion approval')
+    p.add_argument('--candidate', action='append', required=True, metavar='FULL_ID')
+    p.add_argument('--confirm-permanent', action='store_true', required=True)
 
-    cleans = group("clean", "Execute only an existing exact approval, or restore without overwriting")
-    for name in ("quarantine", "purge", "restore", "remove"):
-        p = leaf(cleans, name, "clean", "Permanently delete exact checked Windows files; cannot undo" if name == 'remove' else name.capitalize() + " exact approved bytecode artifacts")
-        if name == 'remove':
-            add_state(p)
-            p.add_argument('--input', required=True, metavar='PLAN_OR_FULL_AUDIT_JSON')
-            p.add_argument('--digest', required=True, help='Exact digest shown before the fresh permanent-deletion approval')
-            p.add_argument('--candidate', action='append', required=True, metavar='FULL_ID')
-            p.add_argument('--confirm-permanent', action='store_true', required=True)
-        elif name == "restore":
-            add_operation(p); p.add_argument("--confirm", action="store_true", required=True)
-        else:
-            add_plan(p); p.add_argument("--approval-id", required=True)
-
-    p = leaf(commands, "verify", "verify", "Verify a completed quarantine, purge, or Windows removal operation")
-    add_operation(p); p.add_argument("--kind", choices=("quarantine", "purge", "remove"), default="quarantine")
+    p = leaf(commands, "verify", "verify", "Verify a completed permanent-removal operation")
+    add_operation(p); p.add_argument("--kind", choices=("remove",), default="remove")
 
     reports = group("report", "Produce an audit or verified cleanup report")
     for name in ("audit", "operation"):
@@ -196,7 +169,7 @@ def parser():
     add_state(p); p.add_argument("--snapshot-id", required=True)
     p = leaf(history, "compare", "history", "Compare audits or snapshot files from the same scope")
     p.add_argument("--before", required=True); p.add_argument("--after", required=True)
-    p = leaf(history, "operations", "history", "List up to 100 signed operation records; no automatic retry")
+    p = leaf(history, "operations", "history", "List up to 100 removal operation records; no automatic retry")
     add_state(p)
 
     profiles = group("profile", "Validate or save restrictive preferences; profiles cannot authorize actions")
@@ -283,40 +256,17 @@ def dispatch(args):
             return audit.trash({**scoped(args), "authorized": args.confirm_scope})
         return native.recycle_bin({"authorized": args.confirm_scope, "volumes": args.volume})
     if route == "plan":
-        if action == 'remove':
-            return removal.create_plan({'inventory': inventory(args.input), 'candidate_ids': args.candidate,
-                                        'include_personal': args.include_personal, 'policy': load(args.policy) if args.policy else {}})
-        if action == "create":
-            return core.create_plan({**state(args), "inventory": inventory(args.input), "candidate_ids": args.candidate})
-        if action == "purge":
-            return purge.create_plan({**state(args), "operation_id": args.operation_id, "candidate_ids": args.candidate,
-                                      "policy": audit.policy(load(args.policy)) if args.policy else {}, "profile_id": args.profile_id})
-        store = existing_store(args)
-        if action == "show":
-            return store.load(("purgeplan-" if args.kind == "purge" else "plan-") + args.plan_id + ".json")
-        plan = (purge.load_plan if args.kind == "purge" else core.load_plan)(store, args.plan_id)
-        return {"valid": True, "plan_id": plan["id"], "digest": plan["digest"], "candidate_count": len(plan.get("entries", plan.get("items", [])))}
-    if route == "approve":
-        request = {**state(args), "plan_id": args.plan_id, "plan_digest": args.digest,
-                   "user_approved": args.confirm, "approval_note": args.note}
-        if action == "quarantine":
-            return core.approve({**request, "workload_stopped": args.workload_stopped})
-        return purge.approve({**request, "acknowledge_irreversible": args.acknowledge_irreversible})
+        return removal.create_plan({'inventory': inventory(args.input), 'candidate_ids': args.candidate,
+                                    'include_personal': args.include_personal, 'policy': load(args.policy) if args.policy else {}})
     if route == "clean":
-        if action == 'remove':
-            data = load(args.input)
-            plan = data.get('removal_plan', data)
-            core.require(isinstance(plan, dict), 'No direct-removal plan is available')
-            return removal.execute({**state(args), 'plan': plan, 'plan_digest': args.digest,
-                                    'candidate_ids': args.candidate, 'user_approved': args.confirm_permanent,
-                                    'acknowledge_irreversible': args.confirm_permanent})
-        if action == "restore":
-            return core.restore({**state(args), "operation_id": args.operation_id, "user_approved": args.confirm})
-        return (purge.execute if action == "purge" else core.execute)({**state(args), "plan_id": args.plan_id, "approval_id": args.approval_id})
+        data = load(args.input)
+        plan = data.get('removal_plan', data)
+        core.require(isinstance(plan, dict), 'No direct-removal plan is available')
+        return removal.execute({'state_dir': args.state_dir, 'plan': plan, 'plan_digest': args.digest,
+                                'candidate_ids': args.candidate, 'user_approved': args.confirm_permanent,
+                                'acknowledge_irreversible': args.confirm_permanent})
     if route == "verify":
-        if args.kind == 'remove':
-            return removal.verify({**state(args), 'operation_id': args.operation_id})
-        return (purge.verify if args.kind == "purge" else core.verify)({**state(args), "operation_id": args.operation_id})
+        return removal.verify({'state_dir': args.state_dir, 'operation_id': args.operation_id})
     if route == "report":
         return core.human_report({"inventory": inventory(args.input), "shareable": not args.private}) if action == "audit" else core.human_report({"operation": load(args.input), "plan": load(args.plan)})
     if route == "history":
@@ -327,15 +277,7 @@ def dispatch(args):
         if action == "show":
             existing_store(args)
             return audit.snapshots({**state(args), "snapshot_id": args.snapshot_id})
-        store = existing_store(args); records = []
-        with os.scandir(store.path) as files:
-            for index, item in enumerate(files):
-                if index >= 2000 or len(records) >= 100:
-                    break
-                if item.name.startswith(("operation-", "result-", "purgeoperation-", "purgeresult-")) and item.name.endswith(".json"):
-                    value = store.load(item.name)
-                    records.append({"id": value["id"], "record": item.name.split("-", 1)[0], "status": value.get("status", "interrupted-or-pending"), "plan_id": value["plan_id"]})
-        return {"operations": records, "changes_made": False, "limit": 100}
+        return removal.operations({'state_dir': args.state_dir})
     if route == "profile":
         if action == "show":
             return existing_store(args).load("profile-" + args.profile_id + ".json")
@@ -434,7 +376,7 @@ def main(argv=None):
                                  f"Active installation: {result['installation']['directory']}",
                                  (f"Storage: {result['disk']['free']} bytes available of {result['disk']['total']}" if result['disk']['free'] is not None else 'Storage: unknown (' + result['disk']['status'] + '); metadata scans can still run where access is available'),
                                  "Metadata audit: available", "Content hashing: " + ("available" if caps["content_hashing"] else "unavailable"),
-                                 "Bytecode quarantine/purge: " + ("available with exact approval" if caps["quarantine"] else "native guidance only"),
+                                 "Exact permanent removal: " + ("available with fresh approval" if caps["direct_remove"] else "unavailable; native guidance only"),
                                  "Next: scan quick --root PATH. Use --json for complete discovery metadata."])
         elif args.route == "catalog":
             display = "\n".join(["ID | Category | Application | Strategy", *[f"{r['id']} | {r['category']} | {r['application']} | {r['strategy']}" for r in result["rules"]]])

@@ -38,16 +38,12 @@ def review_prompt(result):
     if not result['inventory']['entries'] and result['inventory']['complete']:
         return {'title': 'No recorded files to review.', 'options': [], 'requires_response': False,
                 'authorizes_cleanup': False, 'presentation': 'Summarize the scope and finish without a question.'}
-    windows = result['discovery']['platform'] == 'windows'
     options = []
-    if windows and result.get('removal_plan'):
+    if result.get('removal_plan'):
         options.append({'id': 'remove_selected', 'label': 'Permanently delete selected files',
-                        'description': 'Irreversible: bypass Recycle Bin. Execute only the exact checked IDs and the digest displayed in this plan.'})
-    elif not windows and result['discovery']['capabilities']['quarantine'] and result['guidance']['recorded_bytecode_candidates']:
-        options.append({'id': 'review_bytecode', 'label': 'Review bytecode cleanup',
-                        'description': 'Prepare an exact quarantine plan before requesting approval; quarantine frees no space.'})
+                        'description': 'Irreversible: bypasses Trash and Recycle Bin. Execute only the exact checked IDs and the digest displayed in this plan.'})
     else:
-        options.append({'id': 'native_cleanup', 'label': 'Review Windows cleanup' if windows else 'Review native cleanup',
+        options.append({'id': 'native_cleanup', 'label': 'Review native cleanup',
                         'description': 'Review application or OS storage controls; this choice does not authorize file deletion.'})
     options.extend([
         {'id': 'review_files', 'label': 'Review large files', 'description': 'Inspect the largest recorded files and folders without removing them.'},
@@ -76,7 +72,7 @@ def run(request, output=None):
                        'boundary': 'Only the selected scope is inspected; other profiles, additional drives, cloud folders, backups, links and protected trees are not automatically included.'}
     result['analysis']['possible_duplicates'] = possible_duplicates(result['inventory']['entries'])
     result['guidance'] = guide.next_steps(result['inventory'], output)
-    if discovery['platform'] == 'windows':
+    if discovery['capabilities']['direct_remove']:
         selected = [entry['candidate_id'] for entry in result['proposal']['candidates'] if entry['classification'] != 'PROTECTED'][:request.get('top', 20)]
         if selected:
             try:
@@ -84,7 +80,7 @@ def run(request, output=None):
                                                            'policy': request.get('policy', {}), 'skip_unavailable': True})
             except (OSError, core.Refusal):
                 result['removal_plan'] = None
-                result['removal_limit'] = 'No eligible unlocked local NTFS files are available under the selected policy; review findings without removal.'
+                result['removal_limit'] = 'No eligible unlocked local files are available under the selected policy; review findings without removal.'
     result['review_prompt'] = review_prompt(result)
     return result
 
@@ -98,10 +94,9 @@ def render(result, saved=False):
              'Possible duplicate size groups: ' + str(len(result['analysis']['possible_duplicates'])) + ' (contents not checked)',
              'Findings: large files, directory totals, cache rules and storage health analyzed in one pass.',
              result['scope']['boundary'], '', core.human_report({'inventory': inventory, 'include_next': False})['markdown']]
-    if result['discovery']['platform'] == 'windows':
-        lines.append('Windows direct removal requires the exact displayed plan and fresh irreversible approval. Recycle Bin is bypassed; Swipr cannot undo removal.')
-        if result.get('removal_plan'):
-            lines.append('Prepared permanent-removal plan: ' + result['removal_plan']['id'] + '; digest: ' + result['removal_plan']['digest'])
+    lines.append('Permanent removal requires the exact displayed plan and fresh irreversible approval. Trash and Recycle Bin are bypassed; Swipr cannot undo removal.')
+    if result.get('removal_plan'):
+        lines.append('Prepared permanent-removal plan: ' + result['removal_plan']['id'] + '; digest: ' + result['removal_plan']['digest'])
     if saved:
         lines.append('Full JSON saved privately for review; no files were approved for cleanup.')
     lines.extend(['', result['review_prompt']['title'],

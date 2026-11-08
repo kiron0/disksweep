@@ -12,9 +12,9 @@ references, focused helpers, versioned rules, schemas, assets, and executable te
 | Analyze | inventory.py, analyze.py, audit.py | Bounded filesystem, directory-size and mode tests |
 | Classify | Versioned catalogs and project-marker rules | Positive, negative and protected-override fixtures |
 | Recommend | recommend.py; exact IDs, effects and recovery | Proposal and source-protection tests |
-| Approve | plan.py / approve.py; separate purge_plan.py / purge_approve.py | Signature, expiry, scope and replay tests |
-| Execute | execute.py / restore.py; guarded purge_execute.py | Exact-identity, failure, link and source-preservation tests |
-| Verify | verify.py, purge_verify.py, compare.py and report.py | End-to-end helpers and observed-space reporting |
+| Approve | plan.py; digest-bound exact plan and one review prompt | Digest, expiry, scope and replay tests |
+| Execute | execute.py; guarded native handle removal on every OS | Exact-identity, failure, link, race and source-preservation tests |
+| Verify | verify.py, compare.py and report.py | End-to-end helpers and observed-space reporting |
 
 ## Cleanup categories
 
@@ -65,9 +65,9 @@ backups, dependencies and application state without making them cleanup candidat
 
 ## Release boundary
 
-POSIX executable deletion is limited to exact previously verified private bytecode
-quarantine, with a new irreversible plan and approval. Windows supports a separate
-digest-bound exact selected-file NTFS removal protocol with fresh irreversible approval. Other integrations
+Every OS uses one digest-bound exact selected-file removal protocol with fresh
+irreversible approval: POSIX directory handles on macOS and Linux, exclusive local NTFS
+handles on Windows. Other integrations
 provide operational audit and native user-guided maintenance. They do not acquire
 permission to delete arbitrary cache trees, backups, personal data, Docker volumes,
 or system state. Platform/tool failures degrade explicitly as required by the brief.
@@ -75,12 +75,3 @@ or system state. Platform/tool failures degrade explicitly as required by the br
 Tests cover engine behavior and native adapters using fixtures. Independent security
 review, every native app/version, hardware combination, filesystem clone mechanism,
 and live behavior of each host agent are not asserted by this coverage map.
-
-## Windows direct-removal update (0.1.3)
-
-Windows additionally supports exact approved permanent removal on local NTFS.
-The full scan prepares eligible recognized files for one irreversible choice;
-submitting exact checked IDs and the previously displayed digest executes and
-verifies directly. No Settings UI, recursion, force, or raw shell fallback.
-See [Windows protocol](../references/windows.md) for ownership, exclusive-handle, identity, protection and one-use intent gates.
-This is separate from the POSIX quarantine/purge protocol.

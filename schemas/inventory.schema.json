@@ -148,7 +148,7 @@
           "strategy": {
             "enum": [
               "audit-only",
-              "quarantine-bytecode"
+              "remove-exact"
             ]
           },
           "evidence": {

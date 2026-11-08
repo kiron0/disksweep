@@ -14,6 +14,6 @@ APFS snapshots/purgeable storage are system-managed and are not generic file cle
 candidates. No snapshot deletion or system database edits are implemented. APFS clones
 and snapshots mean file allocation does not guarantee recoverable physical bytes.
 
-POSIX bytecode quarantine can run when safe directory handles and a matching CPython
-runtime are available. OS release, Apple Silicon/Intel compatibility, and native app
+Exact approved permanent removal uses POSIX directory handles, the same flow as Linux
+and Windows. It bypasses Trash and cannot be undone. OS release, Apple Silicon/Intel compatibility, and native app
 versions still require separate testing; local validation does not establish all of them.

@@ -1,6 +1,5 @@
 """Read-only workflow guidance. Saved findings never establish current eligibility."""
 import json
-import os
 import re
 
 import _core as core
@@ -53,25 +52,23 @@ def render_start(result):
 
 
 def planning_hint(entry, metadata_only=False):
-    if metadata_only or entry["classification"] == "PROTECTED":
+    if metadata_only or entry["classification"] not in {"SAFE-CANDIDATE", "REVIEW"} or not entry.get("rule_id"):
         return "preserve"
-    if entry["classification"] == "SAFE-CANDIDATE" and entry["strategy"] == "quarantine-bytecode":
-        return "requires-fresh-quarantine-plan" if os.name == "posix" else "native-guidance-only"
-    return "manual-or-native-review" if entry["classification"] == "REVIEW" else "preserve"
+    return "requires-fresh-removal-plan"
 
 
 def next_steps(inventory, output=None):
     ids = [entry["id"] for entry in inventory["entries"]
-           if planning_hint(entry, inventory.get("protected_metadata_only", False)) == "requires-fresh-quarantine-plan"]
+           if planning_hint(entry, inventory.get("protected_metadata_only", False)) == "requires-fresh-removal-plan"]
     complete = inventory["complete"]
     if ids:
-        message = "Review recorded bytecode findings with explain; a fresh plan must revalidate every selected file. Quarantine frees no space."
+        message = "Review recorded findings with explain; a fresh permanent-removal plan must revalidate every selected file before approval."
     else:
-        message = "No supported bytecode plan candidates were recorded. Preserve protected files; review other findings using application or system storage controls."
+        message = "No recognized removal candidates were recorded. Preserve protected files; review other findings using application or system storage controls."
     if not complete:
         message = "Coverage is partial; review audit issues and limits before drawing conclusions. " + message
     return {"message": message, "coverage_complete": complete,
-            "recorded_bytecode_candidates": len(ids), "sample_candidate_ids": ids[:5],
+            "recorded_removal_candidates": len(ids), "sample_candidate_ids": ids[:5],
             "suggested_arguments": [["explain", "--input", output, "--candidate", value] for value in ids[:5]] if output else [],
             "current_eligibility": "not-checked", "execution_authorized": False}
 
@@ -103,5 +100,5 @@ def explain(inventory, selected, private=False):
             row["evidence"] = evidence
         rows.append(row)
     return {"candidates": rows, "paths_included": private, "coverage_complete": inventory["complete"],
-            "warning": "Saved snapshot only: files, rules and active use have not been rechecked. This is not a plan or approval. Quarantine frees no space.",
+            "warning": "Saved snapshot only: files, rules and active use have not been rechecked. This is not a plan or approval.",
             "changes_made": False, "execution_authorized": False}

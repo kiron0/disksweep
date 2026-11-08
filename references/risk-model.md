@@ -2,8 +2,8 @@
 
 | Classification | Meaning | Treatment |
 |---|---|---|
-| SAFE-CANDIDATE | Source-backed CPython artifact under a recognized project | May enter narrow quarantine planning; still revalidate and approve |
-| REVIEW | Known cache/diagnostic path, importance or active use uncertain | Audit and native guidance only |
+| SAFE-CANDIDATE | Source-backed CPython artifact under a recognized project | May enter an exact removal plan; still revalidate and approve |
+| REVIEW | Known cache/diagnostic path, importance or active use uncertain | May enter an exact removal plan only with explicit approval; explain side effects |
 | PROTECTED | Personal, source, unknown, credentials, state, backups, dependencies | Exclude from cleanup helpers |
 | UNSUPPORTED | Unreadable, redirected, mounted, or unimplemented operation | Report limitation; do not infer safe |
 

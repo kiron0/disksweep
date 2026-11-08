@@ -14,23 +14,21 @@ operations the agent can perform locally.
 | Filesystem, logs, snapshots and volume discovery | Authorized native queries | Authorized native queries |
 | Duplicate hashing | Approved safe-handle hashing | Metadata only; content hashing unavailable |
 | Persistent signed policies and snapshots | Private local state | Session policies; persistent helper unavailable |
-| Bytecode quarantine, restoration, signed approval and journaling | Automated after exact approval | Native user-guided cleanup |
-| Permanent removal of verified private bytecode quarantine | Separate irreversible approval | Native user-guided cleanup |
-| Exact selected-file permanent removal | Bytecode protocol only | Approved owned files on local NTFS |
+| Exact selected-file permanent removal, one-use records and verification | Approved owned local files (POSIX directory handles) | Approved owned files on local NTFS |
 | Other browser, package, Docker and system maintenance | Native user-guided cleanup | Native user-guided cleanup |
 
 Default `start` performs a bounded current-user scan and analysis in one pass,
 then supplies review choices for the host's question UI. Terminal output lists
-those choices without implementing a separate interactive UI. Windows can execute exact checked-file permanent removal after its irreversible
+those choices without implementing a separate interactive UI. Every OS executes exact checked-file permanent removal after the same irreversible
 approval choice; unsupported system maintenance remains user-guided.
 
 ## What the checks establish
 
 Fixture tests cover rule matching, all modes, proposals, comparison, policies,
 private snapshots, native-output handling, protected Trash, approval, revalidation,
-quarantine, restoration, permanent-removal boundaries, and failure handling.
+permanent-removal boundaries, replay refusal, and failure handling on every OS.
 CI runs Python 3.10 and 3.12 on Linux, macOS and Windows. The Actions page records
-results for each commit; Windows skips tests for unavailable POSIX mutation APIs.
+results for each commit; each OS skips only tests for filesystem features it lacks.
 
 Native tools are queried only with scope approval. Missing tools, version differences,
 permissions, or unavailable interfaces produce explicit partial/unsupported results.
@@ -40,12 +38,3 @@ individual host-agent certification, or precise clone/snapshot-aware physical sa
 
 The original document's v0.1–v1.0 milestones describe development stages, not the
 release numbering. This project's first published stable version is 0.1.0.
-
-## Windows direct-removal update (0.1.3)
-
-Windows additionally supports exact approved permanent removal on local NTFS.
-The full scan prepares eligible recognized files for one irreversible choice;
-submitting exact checked IDs and the previously displayed digest executes and
-verifies directly. No Settings UI, recursion, force, or raw shell fallback.
-See [Windows protocol](../references/windows.md) for ownership, exclusive-handle, identity, protection and one-use intent gates.
-This is separate from the POSIX quarantine/purge protocol.

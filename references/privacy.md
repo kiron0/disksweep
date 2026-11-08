@@ -17,8 +17,8 @@ do not ask a save question at every stage. Durable reports, saved history/profil
 external sharing and uploads require their applicable separate consent.
 
 Private state uses 0700 directories, 0600 files, HMAC signatures, and no-overwrite writes
-on POSIX. Windows metadata audit and exclusive-handle NTFS permanent removal are supported;
-POSIX HMAC state, quarantine and hashing are unavailable. Direct-removal approval
+on POSIX for profiles and snapshots; they are unavailable on Windows, as is hashing.
+Permanent removal works the same on every OS. Direct-removal approval
 binds the digest held in trusted host context to exact checked IDs and one-use
 private records. Store only a short approval note, never a full
 conversation. User preferences can define exclusions, never ongoing deletion permission.

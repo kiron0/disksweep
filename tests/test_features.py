@@ -1,17 +1,14 @@
 import copy
 import json
 import os
-from pathlib import Path
-import time
 import unittest
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from test_engine import Fixture
 import _audit as audit
 import _core as core
 import _native as native
-import _purge as purge
+import _remove as removal
 
 
 class AuditFeatures(Fixture):
@@ -63,9 +60,8 @@ class AuditFeatures(Fixture):
         row = next(x for x in proposal["candidates"] if x["path"].endswith("generated"))
         self.assertEqual(row["authorization"], "not-approved")
         self.assertEqual(row["classification"], "REVIEW")
-        if os.name == "posix":
-            with self.assertRaises(core.Refusal):
-                core.create_plan({"state_dir": str(self.state), "inventory": inventory, "candidate_ids": [row["candidate_id"]]})
+        with self.assertRaises(core.Refusal):
+            removal.create_plan({"inventory": inventory, "candidate_ids": [row["candidate_id"]]})
 
     def test_trash_is_inspectable_but_never_executable(self):
         trash = self.root / ".Trash"; trash.mkdir()
@@ -84,9 +80,8 @@ class AuditFeatures(Fixture):
             core.scan({"roots": [str(self.root)], "protected_metadata_only": True})
         result = core.scan({"roots": [str(self.root)], "protected_metadata_only": True, "scope_review_approved": True})
         self.assertTrue(all(x["classification"] == "PROTECTED" for x in result["entries"]))
-        if os.name == "posix":
-            with self.assertRaises(core.Refusal):
-                core.create_plan({"inventory": result, "state_dir": str(self.state), "candidate_ids": [self.candidate(result)["id"]]})
+        with self.assertRaises(core.Refusal):
+            removal.create_plan({"inventory": result, "candidate_ids": [self.candidate(result)["id"]]})
 
     def test_nan_scan_budget_and_forged_hash_scope_are_rejected(self):
         with self.assertRaises(core.Refusal):
@@ -169,113 +164,6 @@ class NativeFeatures(Fixture):
         with patch.object(native, "read_command", return_value={"status": "unavailable", "metadata": None, "complete": False}):
             result = native.activity({"authorized": True, "inventory": inventory, "candidate_ids": [entry["id"]]})
         self.assertEqual(result["items"][0]["active_use"], "unknown")
-
-
-@unittest.skipUnless(os.name == "posix", "Permanent cleanup is limited to private POSIX quarantine")
-class PermanentCleanup(Fixture):
-    def test_journal_space_is_required_before_quarantine(self):
-        plan = self.plan(); receipt = self.approval(plan)
-        with patch.object(core.shutil, "disk_usage", return_value=SimpleNamespace(free=0)), self.assertRaises(core.Refusal):
-            self.execute(plan, receipt)
-        self.assertTrue(self.bytecode.exists())
-
-    def prepare(self):
-        plan = self.plan(); receipt = self.approval(plan)
-        result = self.execute(plan, receipt)
-        request = {"state_dir": str(self.state), "operation_id": result["id"], "candidate_ids": [result["items"][0]["candidate_id"]]}
-        return result, purge.create_plan(request)
-
-    def authorize(self, plan):
-        return purge.approve({"state_dir": str(self.state), "plan_id": plan["id"], "plan_digest": plan["digest"],
-                              "user_approved": True, "acknowledge_irreversible": True, "approval_note": "Fixture user approved irreversible deletion of exact quarantine IDs"})
-
-    def test_separately_approved_permanent_cleanup_and_verification(self):
-        original_source = self.source.read_bytes()
-        result, plan = self.prepare(); receipt = self.authorize(plan)
-        outcome = purge.execute({"state_dir": str(self.state), "plan_id": plan["id"], "approval_id": receipt["id"]})
-        self.assertEqual(outcome["status"], "complete")
-        self.assertTrue(outcome["irreversible"])
-        self.assertFalse(Path(result["items"][0]["quarantined"]).exists())
-        self.assertEqual(self.source.read_bytes(), original_source)
-        verified = purge.verify({"state_dir": str(self.state), "operation_id": outcome["id"]})
-        self.assertTrue(verified["all_verified"])
-        report = core.human_report({"operation": verified, "plan": plan})
-        self.assertIn("verified: 1", report["markdown"])
-        self.assertIn("cannot be undone", report["markdown"])
-        self.assertNotIn(str(self.state), report["markdown"])
-
-    def test_journal_space_is_required_before_permanent_removal(self):
-        result, plan = self.prepare(); receipt = self.authorize(plan)
-        with patch.object(core.shutil, "disk_usage", return_value=SimpleNamespace(free=0)), self.assertRaises(core.Refusal):
-            purge.execute({"state_dir": str(self.state), "plan_id": plan["id"], "approval_id": receipt["id"]})
-        self.assertTrue(Path(result["items"][0]["quarantined"]).exists())
-
-    def test_cleanup_report_requires_verification_and_correct_plan(self):
-        result, plan = self.prepare()
-        with self.assertRaises(core.Refusal):
-            core.human_report({"operation": result, "plan": plan})
-        verified = core.verify({"state_dir": str(self.state), "operation_id": result["id"]})
-        original_plan = core.Store(str(self.state)).load("plan-" + result["plan_id"] + ".json")
-        self.assertIn("verified: 1", core.human_report({"operation": verified, "plan": original_plan})["markdown"])
-        with self.assertRaises(core.Refusal):
-            core.human_report({"operation": verified, "plan": plan})
-
-    def test_quarantine_approval_cannot_authorize_purge(self):
-        result, plan = self.prepare()
-        with self.assertRaises((core.Refusal, FileNotFoundError)):
-            purge.execute({"state_dir": str(self.state), "plan_id": plan["id"], "approval_id": result["approval_id"]})
-
-    def test_irreversible_acknowledgement_is_mandatory(self):
-        _, plan = self.prepare()
-        with self.assertRaises(core.Refusal):
-            purge.approve({"state_dir": str(self.state), "plan_id": plan["id"], "plan_digest": plan["digest"], "user_approved": True})
-
-    def test_changed_or_linked_quarantine_is_not_deleted(self):
-        result, plan = self.prepare(); receipt = self.authorize(plan)
-        path = Path(result["items"][0]["quarantined"])
-        os.link(path, self.root / "keep-copy")
-        with self.assertRaises(core.Refusal):
-            purge.execute({"state_dir": str(self.state), "plan_id": plan["id"], "approval_id": receipt["id"]})
-        self.assertTrue(path.exists())
-
-    def test_symlink_quarantine_replacement_never_touches_target(self):
-        result, plan = self.prepare(); receipt = self.authorize(plan)
-        path = Path(result["items"][0]["quarantined"]); path.unlink(); path.symlink_to(self.source)
-        with self.assertRaises(core.Refusal):
-            purge.execute({"state_dir": str(self.state), "plan_id": plan["id"], "approval_id": receipt["id"]})
-        self.assertTrue(self.source.exists())
-
-    def test_no_permanent_delete_profile_blocks_planning(self):
-        result, plan = self.prepare()
-        with self.assertRaises(core.Refusal):
-            purge.create_plan({"state_dir": str(self.state), "operation_id": result["id"], "candidate_ids": [plan["items"][0]["candidate_id"]], "policy": {"never_permanently_delete": True}})
-
-    def test_expired_purge_receipt_rejected(self):
-        _, plan = self.prepare(); receipt = self.authorize(plan)
-        with patch.object(core.time, "time", return_value=time.time() + 301):
-            with self.assertRaises(core.Refusal):
-                purge.execute({"state_dir": str(self.state), "plan_id": plan["id"], "approval_id": receipt["id"]})
-
-    def test_purge_approval_is_invalid_after_catalog_change(self):
-        _, plan = self.prepare(); receipt = self.authorize(plan)
-        changed = [{**r, "reason": r["reason"] + " changed"} for r in core.read_rules()]
-        with patch.object(core, "read_rules", return_value=changed), self.assertRaises(core.Refusal):
-            purge.execute({"state_dir": str(self.state), "plan_id": plan["id"], "approval_id": receipt["id"]})
-
-    def test_purge_receipt_cannot_be_replayed(self):
-        _, plan = self.prepare(); receipt = self.authorize(plan)
-        request = {"state_dir": str(self.state), "plan_id": plan["id"], "approval_id": receipt["id"]}
-        purge.execute(request)
-        with self.assertRaises((core.Refusal, FileNotFoundError, FileExistsError)):
-            purge.execute(request)
-
-    def test_native_failure_stops_and_journals(self):
-        result, plan = self.prepare(); receipt = self.authorize(plan)
-        with patch.object(purge.os, "unlink", side_effect=OSError("fixture failure")):
-            outcome = purge.execute({"state_dir": str(self.state), "plan_id": plan["id"], "approval_id": receipt["id"]})
-        self.assertEqual(outcome["status"], "partial")
-        self.assertTrue(Path(result["items"][0]["quarantined"]).exists())
-
 
 if __name__ == "__main__":
     unittest.main()
