@@ -3,7 +3,6 @@ import copy
 import os
 from pathlib import Path
 import time
-import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -47,17 +46,6 @@ class Removal(Fixture):
         self.own(self.root, recursive=True)
         self.inv = self.inventory()
         self.entries = [entry for entry in self.inv['entries'] if entry['path'] in (str(self.first), str(self.second))]
-
-    def own(self, path, recursive=False):
-        if os.name != 'nt':
-            return
-        import _windows_file as windows
-        kernel, security = windows._api()
-        sid = windows._current_user(kernel, security)
-        arguments = ['icacls', str(path), '/setowner', '*' + sid]
-        if recursive:
-            arguments.append('/T')
-        subprocess.run(arguments, check=True, capture_output=True)
 
     def plan(self, **extra):
         return removal.create_plan({'inventory': self.inv, 'candidate_ids': [entry['id'] for entry in self.entries], **extra})

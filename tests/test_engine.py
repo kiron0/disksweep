@@ -30,6 +30,17 @@ class Fixture(unittest.TestCase):
         old = time.time() - 3 * 86400
         os.utime(self.bytecode, (old, old))
 
+    def own(self, path, recursive=False):
+        if os.name != "nt":
+            return
+        import _windows_file as windows
+        kernel, security = windows._api()
+        sid = windows._current_user(kernel, security)
+        arguments = ["icacls", str(path), "/setowner", "*" + sid]
+        if recursive:
+            arguments.append("/T")
+        subprocess.run(arguments, check=True, capture_output=True)
+
     def inventory(self, **kwargs):
         return core.scan({"roots": [str(self.root)], **kwargs})
 

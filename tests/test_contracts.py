@@ -87,6 +87,7 @@ class RuleTests(Fixture):
         if not core.removal_supported():
             self.skipTest("Exact removal handles are unavailable")
         import _remove as removal
+        self.own(self.root, recursive=True)
         inventory = self.inventory()
         plan = removal.create_plan({"inventory": inventory, "candidate_ids": [self.candidate(inventory)["id"]]})
         changed = [{**x, "reason": x["reason"] + " changed"} for x in core.read_rules()]
