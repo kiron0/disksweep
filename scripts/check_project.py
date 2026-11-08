@@ -37,6 +37,11 @@ def check():
     from _core import read_rules, VERSION
     if "metadata" in meta:
         assert meta["metadata"]["version"] == VERSION, "Skill and helper versions must match"
+    plugin = json.loads((BASE / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))
+    market = json.loads((BASE / ".claude-plugin/marketplace.json").read_text(encoding="utf-8"))
+    entry = next((p for p in market["plugins"] if p["name"] == meta["name"]), None)
+    assert plugin["name"] == meta["name"] and entry and entry["source"] == "./", "Plugin manifests must publish this skill"
+    assert plugin["version"] == entry["version"] == VERSION, "Plugin and helper versions must match"
     rules = read_rules()
     required = {"id", "version", "category", "application", "platforms", "risk", "classification", "strategy", "signatures", "reason", "side_effects", "recovery", "exclusions", "supported_versions", "post_check"}
     for rule in rules:

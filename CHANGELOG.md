@@ -7,6 +7,10 @@
 - Render `find large`, `find directories` and `find duplicates` matches as readable
   tables with root-relative locations instead of raw JSON, and show non-normal
   storage health in scan summaries. JSON output is unchanged.
+- Publish the repository as a Claude Code plugin marketplace with
+  `.claude-plugin/marketplace.json` and `.claude-plugin/plugin.json`, so
+  `/plugin marketplace add kiron0/swipr` and `/plugin install swipr@swipr` work.
+  Project validation keeps both manifest versions equal to the skill version.
 
 ## 0.1.4 — 2026-11-08
 

@@ -23,6 +23,20 @@ npx skills add kiron0/swipr --skill swipr
 Update with `npx skills update swipr`.
 skills.sh lists the skill; `kiron0/swipr` identifies its source repository.
 
+### Claude Code plugin
+
+This repository is also a Claude Code plugin marketplace:
+
+```text
+/plugin marketplace add kiron0/swipr
+/plugin install swipr@swipr
+```
+
+Claude Code 2.1.275 or later can install in one step with
+`/plugin install swipr --marketplace kiron0/swipr`. Update with
+`/plugin marketplace update swipr`. Plugin skills are namespaced, so start with
+`/swipr:swipr start`.
+
 **Requirements:** Node.js 22.20+ for installation, Python 3.10+ for helpers,
 and an AI agent with local filesystem access.
 

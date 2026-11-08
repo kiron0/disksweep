@@ -1,0 +1,12 @@
+{
+  "name": "swipr",
+  "version": "0.1.5",
+  "description": "Scan local storage, find large files and cleanup opportunities, then review every change before it happens.",
+  "author": {
+    "name": "Toufiq Hasan Kiron"
+  },
+  "homepage": "https://skills.sh/kiron0/swipr/swipr",
+  "repository": "https://github.com/kiron0/swipr",
+  "license": "MIT",
+  "keywords": ["storage", "disk", "cleanup", "audit", "cache", "developer-tools"]
+}
